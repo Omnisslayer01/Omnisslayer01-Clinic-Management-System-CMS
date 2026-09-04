@@ -30,7 +30,7 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 
 SITE_DOMAIN = config('SITE_DOMAIN') 
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', SITE_DOMAIN.replace('https://', '').replace('http://', '')] 
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver', SITE_DOMAIN.replace('https://', '').replace('http://', '')] 
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
@@ -159,14 +159,20 @@ elif database_type == 'mysql':
     }
 
 elif database_type == 'postgresql':
+    db_name = config('DATABASE_NAME', default='cms_db')
+    db_user = config('DATABASE_USER', default='cms_user')
+    db_password = config('DATABASE_PASSWORD', default='cms_password')
+    db_host = config('DATABASE_HOST', default='localhost')
+    db_port = config('DATABASE_PORT', default='5432')
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('POSTGRES_DB', 'cms_db'),
-            'USER': os.getenv('POSTGRES_USER', 'cms_user'),
-            'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'cms_password'),
-            'HOST': os.getenv('POSTGRES_HOST', 'db'),
-            'PORT': os.getenv('POSTGRES_PORT', '5432'),
+            'NAME': db_name,
+            'USER': db_user,
+            'PASSWORD': db_password,
+            'HOST': db_host,
+            'PORT': db_port,
         }
     }
 

@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.db.models import Count, Q, Sum
-from accounts.decorators import doctor_required
+from accounts.decorators import doctor_required, doctor_or_assistant_required
 from .models import (
     DoctorProfile, Patients, Appointments, MedicalRecord, Clinic,
     AvailabilityBlock, WaitlistQueue, TriageEscalationLog, LabOrderTicket,
@@ -15,6 +15,24 @@ from .models import (
     Referral, ClaimRecord, SmsLog, AuditLogEntry, LeadEntry,
     ClinicLocation, BillingInvoice
 )
+
+def _get_active_doctor(request):
+    """Safely resolve doctor profile whether logged in as Doctor, Assistant, or Admin."""
+    if hasattr(request.user, 'is_doctor') and request.user.is_doctor():
+        return DoctorProfile.get_or_create_for_user(request.user)
+    elif hasattr(request.user, 'is_assistant') and request.user.is_assistant():
+        from assistant.models import AssistantProfile
+        assistant = AssistantProfile.objects.filter(user=request.user).first()
+        if assistant and assistant.doctor:
+            return assistant.doctor
+        return DoctorProfile.objects.first() or DoctorProfile.get_or_create_for_user(request.user)
+    else:
+        profile = DoctorProfile.objects.filter(user=request.user).first()
+        if not profile:
+            profile = DoctorProfile.objects.first()
+        if not profile:
+            profile = DoctorProfile.get_or_create_for_user(request.user)
+        return profile
 
 # Common Medications Catalog for Autocomplete
 COMMON_DRUGS = [
@@ -51,7 +69,14 @@ def _log_audit(user, action_type, description, request=None):
 
 def _seed_defaults_if_empty(doctor):
     """Seed sample data for calendar, inventory, locations, queue so the clinic looks full immediately."""
+    if not doctor:
+        return
     clinic = doctor.clinic
+    if not clinic:
+        clinic_name = f"Dr. {doctor.user.get_full_name() or doctor.user.username}'s Clinic"
+        clinic, _ = Clinic.objects.get_or_create(name=clinic_name)
+        doctor.clinic = clinic
+        doctor.save(update_fields=['clinic'])
     if clinic and not ClinicLocation.objects.filter(clinic=clinic).exists():
         ClinicLocation.objects.create(clinic=clinic, name="Consultation Suite 1", room_number="101", purpose="General Medicine")
         ClinicLocation.objects.create(clinic=clinic, name="Minor Procedures Room", room_number="102", purpose="Procedures & Dressings")
@@ -85,9 +110,9 @@ def _seed_defaults_if_empty(doctor):
 # 1. CALENDAR VIEW (Highlighted MedCare Feature)
 # ==============================================================================
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 def calendar_view(request):
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     _seed_defaults_if_empty(doctor)
     
     patients = Patients.objects.filter(Q(doctor=doctor) | Q(clinic=doctor.clinic))
@@ -119,13 +144,13 @@ def calendar_view(request):
         'occupancy_pct': occupancy_pct,
         'active_menu': 'calendar',
     }
-    return render(request, 'doctor/calendar.html', context)
+    return render(request, 'calendar.html', context)
 
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 def api_calendar_events(request):
     """Return JSON events for React calendar integration."""
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     start_date = request.GET.get('start')
     end_date = request.GET.get('end')
     
@@ -156,14 +181,14 @@ def api_calendar_events(request):
     return JsonResponse({'events': events})
 
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 @csrf_exempt
 def api_book_slot(request):
     """Book a new slot from calendar or booking dialog."""
     if request.method != 'POST':
         return JsonResponse({'error': 'POST required'}, status=400)
     
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     try:
         data = json.loads(request.body.decode('utf-8'))
     except Exception:
@@ -450,9 +475,9 @@ def api_drug_search(request):
 # 5. LIVE TOKEN QUEUE VIEW (Waiting Room Display)
 # ==============================================================================
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 def queue_view(request):
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     _seed_defaults_if_empty(doctor)
     
     today = date.today()
@@ -486,14 +511,14 @@ def queue_view(request):
         'all_tickets': tickets,
         'active_menu': 'queue',
     }
-    return render(request, 'doctor/queue.html', context)
+    return render(request, 'queue.html', context)
 
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 @csrf_exempt
 def api_call_next_token(request):
     """Calls the next patient in the live queue."""
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     today = date.today()
     
     # Complete current in-consultation ticket
@@ -530,9 +555,9 @@ def api_call_next_token(request):
 # 6. WAITLIST & AUTO-BACKFILL ENGINE
 # ==============================================================================
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 def waitlist_view(request):
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     entries = WaitlistQueue.objects.filter(doctor=doctor).order_by('priority_rank', 'created_at')
     
     # Sample waitlist entries if none exist
@@ -557,14 +582,14 @@ def waitlist_view(request):
         'offered_count': entries.filter(status='Offered').count(),
         'active_menu': 'waitlist'
     }
-    return render(request, 'doctor/waitlist.html', context)
+    return render(request, 'waitlist.html', context)
 
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 @csrf_exempt
 def api_trigger_backfill(request):
     """Simulate slot freeing and auto-backfill cascade to the highest priority waitlisted patient."""
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     top_waiter = WaitlistQueue.objects.filter(doctor=doctor, status='Waiting').order_by('priority_rank').first()
     
     if not top_waiter:
@@ -602,9 +627,9 @@ def api_trigger_backfill(request):
 # 7. INVENTORY MANAGEMENT
 # ==============================================================================
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 def inventory_view(request):
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     _seed_defaults_if_empty(doctor)
     items = InventoryItem.objects.filter(clinic=doctor.clinic).order_by('name') if doctor.clinic else []
 
@@ -615,15 +640,15 @@ def inventory_view(request):
         'total_sku_count': len(items),
         'active_menu': 'inventory'
     }
-    return render(request, 'doctor/inventory.html', context)
+    return render(request, 'inventory.html', context)
 
 # ==============================================================================
 # 8. REFERRALS
 # ==============================================================================
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 def referrals_view(request):
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     referrals = Referral.objects.filter(doctor=doctor).order_by('-date_referred')
     
     if not referrals.exists() and doctor.clinic:
@@ -641,15 +666,15 @@ def referrals_view(request):
         'referrals': referrals,
         'active_menu': 'referrals'
     }
-    return render(request, 'doctor/referrals.html', context)
+    return render(request, 'referrals.html', context)
 
 # ==============================================================================
 # 9. CLAIMS & INSURANCE
 # ==============================================================================
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 def claims_view(request):
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     claims = ClaimRecord.objects.filter(doctor=doctor).order_by('-created_at')
     
     if not claims.exists() and doctor.clinic:
@@ -668,15 +693,15 @@ def claims_view(request):
         'total_claims_amount': sum(c.claim_amount for c in claims),
         'active_menu': 'claims'
     }
-    return render(request, 'doctor/claims.html', context)
+    return render(request, 'claims.html', context)
 
 # ==============================================================================
 # 10. PRESCRIPTIONS HUB
 # ==============================================================================
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 def prescriptions_view(request):
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     records = MedicalRecord.objects.filter(doctor=doctor).select_related('patient').order_by('-date')
     patients = Patients.objects.filter(Q(doctor=doctor) | Q(clinic=doctor.clinic))
 
@@ -687,15 +712,15 @@ def prescriptions_view(request):
         'common_drugs': COMMON_DRUGS,
         'active_menu': 'prescriptions'
     }
-    return render(request, 'doctor/prescriptions.html', context)
+    return render(request, 'prescriptions.html', context)
 
 # ==============================================================================
 # 11. SMS DISPATCH & COMMUNICATION LOGS
 # ==============================================================================
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 def sms_view(request):
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     logs = SmsLog.objects.all().order_by('-sent_at')[:50]
     patients = Patients.objects.filter(Q(doctor=doctor) | Q(clinic=doctor.clinic))
 
@@ -706,15 +731,15 @@ def sms_view(request):
         'total_delivered': SmsLog.objects.filter(status='Delivered').count(),
         'active_menu': 'sms'
     }
-    return render(request, 'doctor/sms.html', context)
+    return render(request, 'sms.html', context)
 
 # ==============================================================================
 # 12. REPORTS & ANALYTICS
 # ==============================================================================
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 def reports_view(request):
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     total_patients = Patients.objects.filter(Q(doctor=doctor) | Q(clinic=doctor.clinic)).count()
     total_appts = Appointments.objects.filter(doctor=doctor).count()
     completed_appts = Appointments.objects.filter(doctor=doctor, status='completed').count()
@@ -728,15 +753,15 @@ def reports_view(request):
         'high_risk_patients': high_risk_patients,
         'active_menu': 'reports'
     }
-    return render(request, 'doctor/reports.html', context)
+    return render(request, 'reports.html', context)
 
 # ==============================================================================
 # 13. LABELS (Clinical & Triage Tagging)
 # ==============================================================================
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 def labels_view(request):
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     patients = Patients.objects.filter(Q(doctor=doctor) | Q(clinic=doctor.clinic))
 
     tags_list = [
@@ -754,15 +779,15 @@ def labels_view(request):
         'patients': patients,
         'active_menu': 'labels'
     }
-    return render(request, 'doctor/labels.html', context)
+    return render(request, 'labels.html', context)
 
 # ==============================================================================
 # 14. LEADS (Inquiries & AI Bot Prospects)
 # ==============================================================================
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 def leads_view(request):
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     leads = LeadEntry.objects.all().order_by('-created_at')
 
     if not leads.exists():
@@ -775,15 +800,15 @@ def leads_view(request):
         'leads': leads,
         'active_menu': 'leads'
     }
-    return render(request, 'doctor/leads.html', context)
+    return render(request, 'leads.html', context)
 
 # ==============================================================================
 # 15. LOCATIONS (Settings)
 # ==============================================================================
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 def locations_view(request):
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     _seed_defaults_if_empty(doctor)
     locations = ClinicLocation.objects.filter(clinic=doctor.clinic) if doctor.clinic else []
 
@@ -792,15 +817,15 @@ def locations_view(request):
         'locations': locations,
         'active_menu': 'locations'
     }
-    return render(request, 'doctor/locations.html', context)
+    return render(request, 'locations.html', context)
 
 # ==============================================================================
 # 16. BILLING (Settings)
 # ==============================================================================
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 def billing_view(request):
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     invoices = BillingInvoice.objects.filter(doctor=doctor).order_by('-created_at')
 
     if not invoices.exists() and doctor.clinic:
@@ -820,15 +845,15 @@ def billing_view(request):
         'total_revenue': total_revenue,
         'active_menu': 'billing'
     }
-    return render(request, 'doctor/billing.html', context)
+    return render(request, 'billing.html', context)
 
 # ==============================================================================
 # 17. AUDIT LOG (Settings)
 # ==============================================================================
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 def audit_log_view(request):
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     logs = AuditLogEntry.objects.all().order_by('-timestamp')[:100]
 
     context = {
@@ -836,15 +861,15 @@ def audit_log_view(request):
         'logs': logs,
         'active_menu': 'audit_log'
     }
-    return render(request, 'doctor/audit_log.html', context)
+    return render(request, 'audit_log.html', context)
 
 # ==============================================================================
 # 18. LABS HUB & TICKET LIFECYCLE
 # ==============================================================================
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 def labs_view(request):
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    doctor = _get_active_doctor(request)
     tickets = LabOrderTicket.objects.filter(doctor=doctor).select_related('patient').order_by('-order_created_at')
     patients = Patients.objects.filter(Q(doctor=doctor) | Q(clinic=doctor.clinic))
 
@@ -866,10 +891,10 @@ def labs_view(request):
         'patients': patients,
         'active_menu': 'labs'
     }
-    return render(request, 'doctor/labs.html', context)
+    return render(request, 'labs.html', context)
 
 @login_required
-@doctor_required
+@doctor_or_assistant_required
 @csrf_exempt
 def api_update_lab_status(request, ticket_id):
     """Advance lab ticket through lifecycle: Order Created -> Sample Pending -> Processing -> Completed."""
@@ -914,7 +939,7 @@ def patient_portal_view(request, token):
     """
     portal_token = get_object_or_404(PatientRecordViewToken, token=token)
     if not portal_token.is_valid():
-        return render(request, 'doctor/shared_prescription_expired.html', {'message': 'This patient portal link has expired.'})
+        return render(request, 'shared_prescription_expired.html', {'message': 'This patient portal link has expired.'})
 
     patient = portal_token.patient
     medical_record = portal_token.medical_record
@@ -927,4 +952,4 @@ def patient_portal_view(request, token):
         'lab_tickets': lab_tickets,
         'qr_data': f"MEDCARE-PASS-{patient.id}-{token[:8]}"
     }
-    return render(request, 'doctor/patient_portal.html', context)
+    return render(request, 'patient_portal.html', context)
