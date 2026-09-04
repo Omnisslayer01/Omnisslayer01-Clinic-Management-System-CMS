@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="min-h-screen flex bg-slate-50 dark:bg-slate-950 font-sans transition-colors duration-200">
-  {% include 'doctor/nav.html' %}
+  {% include 'nav.html' %}
 
   <main class="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
     <!-- React TopHeader Command Bar -->
@@ -162,9 +162,7 @@
                       <span>{{ appt.start_time|time:"H:i" }} · {{ appt.reason_for_visit|default:"General" }}</span>
                     </p>
                   </div>
-                  <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                    appt.status == 'completed' ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                  }">
+                  <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase {% if appt.status == 'completed' %}bg-slate-200 text-slate-700{% else %}bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300{% endif %}">
                     {{ appt.status }}
                   </span>
                 </div>
