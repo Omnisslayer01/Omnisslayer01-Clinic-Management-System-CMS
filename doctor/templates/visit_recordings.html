@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load static i18n %}
+
+{% block title %}Visit Recordings - CMS{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex bg-[#f8fbff] font-sans">
+  {% include 'nav.html' %}
+
+  <main class="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
+    <div id="topHeaderRoot"></div>
+
+    <div class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 custom-scrollbar">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-semibold text-slate-800 tracking-tight">Visit Recordings</h1>
+          <p class="text-sm text-slate-500 mt-1">AI call transcripts and consultation notes from patient interactions</p>
+        </div>
+        <button type="button" onclick="window.openAiBookingModal && window.openAiBookingModal()"
+          class="px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 shadow-sm transition-colors flex items-center gap-2">
+          <i class="fas fa-microphone text-xs"></i>
+          <span>Test AI Booking</span>
+        </button>
+      </div>
+
+      <div class="rounded-2xl bg-white border border-sky-100 shadow-sm overflow-hidden">
+        {% if recordings %}
+        <div class="divide-y divide-sky-50">
+          {% for rec in recordings %}
+          <div class="p-5 hover:bg-sky-50/40 transition-colors">
+            <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
+              <div>
+                <p class="text-sm font-semibold text-slate-800">
+                  {% if rec.patient %}{{ rec.patient.name }}{% else %}Unknown Caller{% endif %}
+                </p>
+                <p class="text-xs text-slate-400 mt-0.5">
+                  {{ rec.recorded_at|date:"M d, Y · H:i" }}
+                  · {{ rec.get_source_display }}
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="px-2.5 py-1 rounded-lg text-[11px] font-medium
+                  {% if rec.priority_assessed == 'Urgent' %}bg-rose-50 text-rose-700 border border-rose-100
+                  {% elif rec.priority_assessed == 'Priority-Revisit' %}bg-amber-50 text-amber-700 border border-amber-100
+                  {% else %}bg-sky-50 text-sky-700 border border-sky-100{% endif %}">
+                  {{ rec.priority_assessed }}
+                </span>
+                {% if rec.risk_score %}
+                <span class="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-50 text-slate-600 border border-slate-100">
+                  Risk {{ rec.risk_score }}/100
+                </span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="rounded-xl bg-slate-50/80 border border-slate-100 p-3.5">
+              <p class="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap">{{ rec.transcript|truncatechars:400 }}</p>
+            </div>
+            {% if rec.soap_summary %}
+            <details class="mt-3">
+              <summary class="text-xs font-medium text-sky-600 cursor-pointer hover:text-sky-700">View SOAP Summary</summary>
+              <pre class="mt-2 text-[11px] text-slate-600 bg-white border border-sky-50 rounded-xl p-3 whitespace-pre-wrap font-sans">{{ rec.soap_summary }}</pre>
+            </details>
+            {% endif %}
+            {% if rec.appointment %}
+            <p class="text-[11px] text-slate-400 mt-2">
+              <i class="far fa-calendar-check mr-1"></i>
+              Linked appointment: {{ rec.appointment.date|date:"M d" }} at {{ rec.appointment.start_time|time:"H:i" }}
+            </p>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-16 px-6">
+          <div class="w-14 h-14 rounded-2xl bg-sky-50 text-sky-400 flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-microphone-lines text-xl"></i>
+          </div>
+          <p class="text-sm font-medium text-slate-600">No visit recordings yet</p>
+          <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+            Recordings are created automatically when patients use the AI booking assistant or when you use Ambient Scribe during consultations.
+          </p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.mountReactComponent && window.TopHeader) {
+      window.mountReactComponent(window.TopHeader, 'topHeaderRoot', {
+        doctorName: "{{ doctor.user.get_full_name|default:'Doctor' }}",
+        specialization: "{{ doctor.specialization|default:'General Practice' }}"
+      });
+    }
+  });
+</script>
+{% endblock %}

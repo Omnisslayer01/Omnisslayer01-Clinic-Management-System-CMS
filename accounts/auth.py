@@ -183,7 +183,7 @@ def user_login(request):
                         return redirect("/admin/")
                     
                     if request.user.is_patient():
-                        return redirect("patient.dashboard")
+                        return redirect("landing_page")
                 else:
                     # Send verification email safely
                     email_sent = _send_verification_email(user)

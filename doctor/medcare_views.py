@@ -13,8 +13,9 @@ from .models import (
     AvailabilityBlock, WaitlistQueue, TriageEscalationLog, LabOrderTicket,
     PatientRecordViewToken, FollowUpTask, InventoryItem, QueueTicket,
     Referral, ClaimRecord, SmsLog, AuditLogEntry, LeadEntry,
-    ClinicLocation, BillingInvoice
+    ClinicLocation, BillingInvoice, VisitRecording
 )
+from . import scheduling as sched
 
 # Common Medications Catalog for Autocomplete
 COMMON_DRUGS = [
@@ -102,10 +103,12 @@ def calendar_view(request):
 
     # Fetch appointments for the selected date
     appointments_today = Appointments.objects.filter(doctor=doctor, date=selected_date).order_by('start_time')
-    
-    # Calculate daily slot occupancy
-    total_slots = 18 # Standard 9am-5pm 20m slots with 1hr break
     booked_count = appointments_today.count()
+    
+    # Calculate daily slot occupancy from real availability
+    total_slots = len(sched.generate_slots_for_date(doctor, selected_date)) + booked_count
+    if total_slots == 0:
+        total_slots = max(booked_count, 1)
     occupancy_pct = min(100, int((booked_count / max(total_slots, 1)) * 100))
 
     context = {
@@ -119,7 +122,7 @@ def calendar_view(request):
         'occupancy_pct': occupancy_pct,
         'active_menu': 'calendar',
     }
-    return render(request, 'doctor/calendar.html', context)
+    return render(request, 'calendar.html', context)
 
 @login_required
 @doctor_required
@@ -247,14 +250,35 @@ def api_book_slot(request):
 # ==============================================================================
 # 2. CONVERSATIONAL VOICE & CHAT AI BOOKING AGENT + EMERGENCY TRIAGE
 # ==============================================================================
+def _resolve_doctor(data):
+    """Resolve target doctor from request payload or default to first active doctor."""
+    doctor_id = data.get('doctor_id')
+    if doctor_id:
+        return DoctorProfile.objects.filter(id=doctor_id).first()
+    return DoctorProfile.objects.first()
+
+
+def _save_booking_recording(doctor, patient, transcript, priority, risk_score, appointment=None):
+    """Persist AI call transcript as a visit recording."""
+    VisitRecording.objects.create(
+        doctor=doctor,
+        patient=patient,
+        appointment=appointment,
+        transcript=transcript,
+        priority_assessed=priority,
+        risk_score=risk_score,
+        source='ai_booking',
+    )
+
+
 @csrf_exempt
 def api_ai_booking_agent(request):
     """
-    AI Conversational booking agent:
-    - Receives user voice transcript / chat text.
-    - Runs Emergency Keyword Triage.
-    - If critical symptoms detected, halts booking and triggers immediate emergency escalation.
-    - If routine, parses name, phone, symptom, desired time and books or waitlists.
+    AI conversational booking agent for patient calls:
+    - Checks doctor availability using real calendar slots
+    - Books appointments with automatic priority assessment
+    - Escalates emergency symptoms immediately
+    - Records all interactions for clinical review
     """
     if request.method != 'POST':
         return JsonResponse({'error': 'POST required'}, status=400)
@@ -267,118 +291,328 @@ def api_ai_booking_agent(request):
     message = data.get('message', '').strip()
     caller_name = data.get('name', '').strip()
     caller_phone = data.get('phone', '').strip()
+    confirm_booking = data.get('confirm_booking', False)
 
     if not message:
         return JsonResponse({'error': 'Message content is empty'}, status=400)
 
-    # 1. EMERGENCY KEYWORD TRIAGE ENGINE
-    emergency_triggers = [
-        "chest pain", "pressure in chest", "shortness of breath", "trouble breathing",
-        "cannot breathe", "severe bleeding", "unconscious", "passed out", "stroke",
-        "facial drooping", "severe head injury", "suicidal", "coughing blood", "anaphylaxis"
-    ]
     message_lower = message.lower()
-    matched_emergency = None
-    for trigger in emergency_triggers:
-        if trigger in message_lower:
-            matched_emergency = trigger
-            break
+    today = date.today()
 
-    if matched_emergency:
-        triage_log = TriageEscalationLog.objects.create(
+    # Resolve doctor
+    doctor = _resolve_doctor(data)
+    if not doctor:
+        return JsonResponse({
+            'status': 'no_doctor',
+            'is_emergency': False,
+            'bot_reply': (
+                "I'm sorry, no doctors are currently registered in the system. "
+                "Please call the clinic front desk directly for assistance."
+            )
+        })
+
+    doctor_display = doctor.user.get_full_name() or doctor.user.username
+
+    # 1. EMERGENCY TRIAGE
+    emergency_trigger = sched.detect_emergency(message_lower)
+    if emergency_trigger:
+        TriageEscalationLog.objects.create(
             patient_name=caller_name or "Anonymous Caller",
             patient_phone=caller_phone or "Not Provided",
-            trigger_phrase=matched_emergency,
+            trigger_phrase=emergency_trigger,
             severity='CRITICAL',
             notes=f"Full transcript: '{message}'",
             escalated_to="Emergency Triage Team & On-Duty Clinical Staff"
         )
+        if doctor:
+            VisitRecording.objects.create(
+                doctor=doctor,
+                transcript=message,
+                priority_assessed='Urgent',
+                risk_score=95,
+                source='ai_booking',
+            )
         return JsonResponse({
             'status': 'emergency_escalated',
             'is_emergency': True,
-            'trigger': matched_emergency,
-            'triage_id': triage_log.id,
+            'trigger': emergency_trigger,
+            'priority': 'Urgent',
+            'risk_score': 95,
             'bot_reply': (
-                f"🚨 EMERGENCY ALERT TRIGGERED: We detected critical symptoms ('{matched_emergency}'). "
-                "Standard scheduling has been halted. Your inquiry has been escalated directly to our "
-                "Emergency Duty Staff. Please call emergency services (911 / 999) or proceed immediately to the nearest Emergency Room."
+                f"Emergency alert: we detected critical symptoms related to '{emergency_trigger}'. "
+                "Standard scheduling has been paused and our clinical team has been notified. "
+                "If this is life-threatening, please call emergency services (911) immediately "
+                "or go to the nearest emergency room."
             )
         })
 
-    # 2. INTENT & SLOT CHECK (Simulated conversational agent)
-    doctor = DoctorProfile.objects.first()
-    tomorrow = date.today() + timedelta(days=1)
-    
-    # Check slot availability for tomorrow at 10:00 AM or next available
-    slot_time = time(10, 0)
-    conflict = False
-    if doctor:
-        conflict = Appointments.objects.filter(doctor=doctor, date=tomorrow, start_time=slot_time).exclude(status='cancelled').exists()
+    # 2. PRIORITY ASSESSMENT
+    priority_tier, risk_score, risk_tier = sched.calculate_priority(message)
 
-    if conflict:
-        # Offer waitlist or next slot
-        waitlist_entry = None
-        if doctor and caller_name and caller_phone:
-            waitlist_entry = WaitlistQueue.objects.create(
-                doctor=doctor,
-                patient_name=caller_name,
-                patient_phone=caller_phone,
-                requested_date=tomorrow,
-                preferred_time_range="Morning (10:00 AM - 12:00 PM)",
-                reason=message,
-                priority_rank=WaitlistQueue.objects.filter(doctor=doctor, status='Waiting').count() + 1
-            )
+    # 3. GREETING / HELP
+    if sched.is_greeting(message_lower) and len(message_lower) < 30:
         return JsonResponse({
-            'status': 'waitlisted',
+            'status': 'greeting',
             'is_emergency': False,
+            'priority': priority_tier,
+            'risk_score': risk_score,
             'bot_reply': (
-                f"Thank you, {caller_name or 'there'}. 10:00 AM on {tomorrow.strftime('%b %d')} is currently occupied. "
-                "I have added you to our Automated Priority Waitlist. If a cancellation occurs, "
-                "our backfill engine will immediately notify you via SMS with a priority booking window!"
-            ),
-            'waitlist_id': waitlist_entry.id if waitlist_entry else None
+                f"Hello! I'm your clinic booking assistant. I can help you check when "
+                f"Dr. {doctor_display} is available and book an appointment for you. "
+                "Could you tell me what symptoms you're experiencing, or when you'd like to visit?"
+            )
         })
 
-    # Available: Create Lead and Book tentative appointment
-    lead = LeadEntry.objects.create(
-        name=caller_name or "Voice Bot Patient",
-        phone=caller_phone or "+1 555-0199",
-        source='Conversational Bot',
-        symptoms=message,
-        status='Converted (Booked)'
-    )
+    # 4. AVAILABILITY CHECK
+    if sched.is_availability_query(message_lower) or (
+        'free' in message_lower and 'doctor' in message_lower
+    ):
+        preferred_date = sched.parse_preferred_date(message_lower, today) or today + timedelta(days=1)
+        slots = sched.generate_slots_for_date(doctor, preferred_date)
 
-    if doctor and caller_name and caller_phone:
+        if not slots:
+            next_date, next_slot = sched.find_next_available_slot(doctor, today)
+            if next_date and next_slot:
+                return JsonResponse({
+                    'status': 'availability',
+                    'is_emergency': False,
+                    'priority': priority_tier,
+                    'risk_score': risk_score,
+                    'available_slots': [],
+                    'bot_reply': (
+                        f"Dr. {doctor_display} has no open slots on "
+                        f"{preferred_date.strftime('%A, %b %d')}. "
+                        f"The next available appointment is {next_date.strftime('%A, %b %d')} "
+                        f"at {sched._format_time_12h(next_slot)}. "
+                        "Would you like me to book that for you? Please share your name and phone number."
+                    ),
+                    'suggested_date': str(next_date),
+                    'suggested_time': next_slot,
+                })
+            return JsonResponse({
+                'status': 'no_availability',
+                'is_emergency': False,
+                'bot_reply': (
+                    f"Dr. {doctor_display} is fully booked for the next two weeks. "
+                    "I can add you to our priority waitlist — please provide your name and phone number."
+                )
+            })
+
+        slot_summary = sched.format_slot_list(slots)
+        priority_note = ""
+        if priority_tier == 'Urgent':
+            priority_note = " Based on your symptoms, I've flagged this as urgent — we'll prioritize your booking."
+        elif priority_tier == 'Priority-Revisit':
+            priority_note = " Your symptoms suggest moderate concern — we'll try to schedule you soon."
+
+        return JsonResponse({
+            'status': 'availability',
+            'is_emergency': False,
+            'priority': priority_tier,
+            'risk_score': risk_score,
+            'available_slots': slots[:8],
+            'bot_reply': (
+                f"Dr. {doctor_display} has open slots on "
+                f"{preferred_date.strftime('%A, %b %d')}: {slot_summary}.{priority_note} "
+                "To book, please share your full name and phone number."
+            ),
+            'suggested_date': str(preferred_date),
+        })
+
+    # 5. BOOKING — requires name + phone
+    if sched.is_booking_intent(message_lower) or confirm_booking:
+        if not caller_name or not caller_phone:
+            return JsonResponse({
+                'status': 'need_info',
+                'is_emergency': False,
+                'priority': priority_tier,
+                'risk_score': risk_score,
+                'bot_reply': (
+                    f"I'd be happy to book your appointment with Dr. {doctor_display}. "
+                    "To proceed, please enter your full name and phone number in the fields above, "
+                    "then send your booking request again."
+                )
+            })
+
+        preferred_date = sched.parse_preferred_date(message_lower, today) or today + timedelta(days=1)
+        time_pref = sched.parse_time_preference(message_lower)
+        slots = sched.generate_slots_for_date(doctor, preferred_date)
+
+        if not slots:
+            next_date, next_slot = sched.find_next_available_slot(doctor, today)
+            if next_date and next_slot:
+                preferred_date = next_date
+                slots = [next_slot]
+            else:
+                waitlist_entry = WaitlistQueue.objects.create(
+                    doctor=doctor,
+                    patient_name=caller_name,
+                    patient_phone=caller_phone,
+                    requested_date=preferred_date,
+                    preferred_time_range=time_pref or "Anytime",
+                    reason=message[:250],
+                    priority_tier=priority_tier,
+                    priority_rank=1 if priority_tier == 'Urgent' else WaitlistQueue.objects.filter(doctor=doctor, status='Waiting').count() + 1
+                )
+                _save_booking_recording(doctor, None, message, priority_tier, risk_score)
+                return JsonResponse({
+                    'status': 'waitlisted',
+                    'is_emergency': False,
+                    'priority': priority_tier,
+                    'bot_reply': (
+                        f"All slots are currently full. I've added you to our priority waitlist "
+                        f"(ref #{waitlist_entry.id}). We'll notify you via SMS when a slot opens."
+                    )
+                })
+
+        chosen_slot = sched.pick_slot_for_preference(slots, time_pref)
+        slot_time = datetime.strptime(chosen_slot, '%H:%M').time()
+
         patient, _ = Patients.objects.get_or_create(
             phone_number=caller_phone,
-            defaults={'name': caller_name, 'clinic': doctor.clinic, 'doctor': doctor, 'gender': 'Male'}
+            defaults={
+                'name': caller_name,
+                'clinic': doctor.clinic,
+                'doctor': doctor,
+                'gender': 'Male',
+                'risk_tier': risk_tier,
+            }
         )
+        patient.name = caller_name
+        patient.risk_tier = risk_tier
+        patient.save(update_fields=['name', 'risk_tier'])
+
+        LeadEntry.objects.create(
+            name=caller_name,
+            phone=caller_phone,
+            source='Conversational Bot',
+            symptoms=message,
+            status='Converted (Booked)'
+        )
+
         appt = Appointments.objects.create(
             doctor=doctor,
             clinic=doctor.clinic,
             patient=patient,
-            date=tomorrow,
+            date=preferred_date,
             start_time=slot_time,
-            status='scheduled',
+            status='confirmed' if priority_tier != 'Urgent' else 'scheduled',
             reason_for_visit=message[:250],
-            priority_tier='Routine'
+            priority_tier=priority_tier,
+            reminder_tier='Aggressive' if risk_tier == 'High' else 'Standard',
         )
+
+        _save_booking_recording(doctor, patient, message, priority_tier, risk_score, appt)
+
+        SmsLog.objects.create(
+            recipient_name=caller_name,
+            phone_number=caller_phone,
+            message_type='Appointment Reminder',
+            content=(
+                f"Hi {caller_name}, your appointment with Dr. {doctor_display} is confirmed for "
+                f"{preferred_date.strftime('%b %d, %Y')} at {slot_time.strftime('%I:%M %p')}. "
+                f"Priority: {priority_tier}."
+            ),
+            status='Delivered'
+        )
+
+        priority_msg = ""
+        if priority_tier == 'Urgent':
+            priority_msg = " Your case has been marked URGENT — please arrive promptly or call if symptoms worsen."
+        elif priority_tier == 'Priority-Revisit':
+            priority_msg = " We've noted moderate priority for your visit."
+
         return JsonResponse({
             'status': 'booked',
             'is_emergency': False,
             'appointment_id': appt.id,
+            'priority': priority_tier,
+            'risk_score': risk_score,
             'bot_reply': (
-                f"Great! I have reserved your appointment with Dr. {doctor.user.get_full_name() or doctor.user.username} "
-                f"for tomorrow, {tomorrow.strftime('%A, %b %d')} at {slot_time.strftime('%I:%M %p')}. "
-                "A confirmation SMS has been dispatched with your check-in token."
+                f"Your appointment is confirmed with Dr. {doctor_display} on "
+                f"{preferred_date.strftime('%A, %b %d')} at {slot_time.strftime('%I:%M %p')}.{priority_msg} "
+                "A confirmation message has been sent to your phone."
+            )
+        })
+
+    # 6. GENERAL SYMPTOM REPORT — assess priority, prompt for booking
+    if not caller_name or not caller_phone:
+        return JsonResponse({
+            'status': 'symptom_assessed',
+            'is_emergency': False,
+            'priority': priority_tier,
+            'risk_score': risk_score,
+            'bot_reply': (
+                f"Thank you for sharing. Based on your symptoms, your priority level is "
+                f"**{priority_tier}** (risk score: {risk_score}/100). "
+                f"Dr. {doctor_display} has availability this week. "
+                "Please enter your name and phone number above, then say 'book an appointment' "
+                "or ask 'when is the doctor free?'"
+            )
+        })
+
+    # Has contact info — offer to book
+    next_date, next_slot = sched.find_next_available_slot(doctor, today)
+    if next_date and next_slot:
+        return JsonResponse({
+            'status': 'ready_to_book',
+            'is_emergency': False,
+            'priority': priority_tier,
+            'risk_score': risk_score,
+            'suggested_date': str(next_date),
+            'suggested_time': next_slot,
+            'bot_reply': (
+                f"I've assessed your symptoms as **{priority_tier}** priority (score: {risk_score}/100). "
+                f"The earliest available slot with Dr. {doctor_display} is "
+                f"{next_date.strftime('%A, %b %d')} at {sched._format_time_12h(next_slot)}. "
+                "Reply 'yes, book it' or 'book appointment' to confirm."
             )
         })
 
     return JsonResponse({
         'status': 'collected_info',
         'is_emergency': False,
-        'bot_reply': f"I understand your concern ('{message}'). Could you please provide your full name and phone number to finalize your booking?"
+        'priority': priority_tier,
+        'bot_reply': (
+            f"I understand your concern. Priority assessed: {priority_tier}. "
+            "Would you like to check availability or join our waitlist?"
+        )
     })
+
+
+@csrf_exempt
+def api_available_slots(request):
+    """Public API: return available slots for a doctor on a given date."""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'GET required'}, status=400)
+
+    doctor_id = request.GET.get('doctor_id')
+    date_str = request.GET.get('date')
+
+    if doctor_id:
+        doctor = DoctorProfile.objects.filter(id=doctor_id).first()
+    else:
+        doctor = DoctorProfile.objects.first()
+
+    if not doctor:
+        return JsonResponse({'error': 'No doctor found'}, status=404)
+
+    try:
+        target_date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else date.today()
+    except ValueError:
+        return JsonResponse({'error': 'Invalid date format (YYYY-MM-DD)'}, status=400)
+
+    slots = sched.generate_slots_for_date(doctor, target_date)
+    doctor_name = doctor.user.get_full_name() or doctor.user.username
+
+    return JsonResponse({
+        'doctor_id': doctor.id,
+        'doctor_name': doctor_name,
+        'date': str(target_date),
+        'slots': slots,
+        'total_available': len(slots),
+    })
+
 
 # ==============================================================================
 # 3. AMBIENT CONSULTATION SCRIBE (SOAP Note Generator)
@@ -427,10 +661,40 @@ def api_ambient_scribe(request):
         f"--- PLAN ---\n{soap_data['plan']}"
     )
 
+    # Persist visit recording
+    doctor = None
+    patient = None
+    if request.user.is_authenticated:
+        doctor = DoctorProfile.get_or_create_for_user(request.user)
+    if patient_id and doctor:
+        patient = Patients.objects.filter(id=patient_id, doctor=doctor).first()
+
+    priority_tier, risk_score, _ = sched.calculate_priority(transcript)
+
+    if doctor:
+        VisitRecording.objects.create(
+            doctor=doctor,
+            patient=patient,
+            transcript=transcript,
+            soap_summary=formatted_soap,
+            priority_assessed=priority_tier,
+            risk_score=risk_score,
+            source='ambient_scribe',
+        )
+        if patient_id and patient:
+            record = MedicalRecord.objects.filter(
+                doctor=doctor, patient=patient
+            ).order_by('-date').first()
+            if record:
+                record.soap_summary = formatted_soap
+                record.save(update_fields=['soap_summary'])
+
     return JsonResponse({
         'success': True,
         'soap_json': soap_data,
-        'formatted_soap': formatted_soap
+        'formatted_soap': formatted_soap,
+        'priority': priority_tier,
+        'risk_score': risk_score,
     })
 
 # ==============================================================================
@@ -486,7 +750,7 @@ def queue_view(request):
         'all_tickets': tickets,
         'active_menu': 'queue',
     }
-    return render(request, 'doctor/queue.html', context)
+    return render(request, 'queue.html', context)
 
 @login_required
 @doctor_required
@@ -557,7 +821,7 @@ def waitlist_view(request):
         'offered_count': entries.filter(status='Offered').count(),
         'active_menu': 'waitlist'
     }
-    return render(request, 'doctor/waitlist.html', context)
+    return render(request, 'waitlist.html', context)
 
 @login_required
 @doctor_required
@@ -615,7 +879,7 @@ def inventory_view(request):
         'total_sku_count': len(items),
         'active_menu': 'inventory'
     }
-    return render(request, 'doctor/inventory.html', context)
+    return render(request, 'inventory.html', context)
 
 # ==============================================================================
 # 8. REFERRALS
@@ -641,7 +905,7 @@ def referrals_view(request):
         'referrals': referrals,
         'active_menu': 'referrals'
     }
-    return render(request, 'doctor/referrals.html', context)
+    return render(request, 'referrals.html', context)
 
 # ==============================================================================
 # 9. CLAIMS & INSURANCE
@@ -668,7 +932,7 @@ def claims_view(request):
         'total_claims_amount': sum(c.claim_amount for c in claims),
         'active_menu': 'claims'
     }
-    return render(request, 'doctor/claims.html', context)
+    return render(request, 'claims.html', context)
 
 # ==============================================================================
 # 10. PRESCRIPTIONS HUB
@@ -687,7 +951,63 @@ def prescriptions_view(request):
         'common_drugs': COMMON_DRUGS,
         'active_menu': 'prescriptions'
     }
-    return render(request, 'doctor/prescriptions.html', context)
+    return render(request, 'prescriptions.html', context)
+
+
+@login_required
+@doctor_required
+@csrf_exempt
+def api_save_prescription(request):
+    """Save a compiled prescription as a medical record and return PDF link."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=400)
+
+    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = request.POST
+
+    patient_id = data.get('patient_id')
+    prescription_text = data.get('prescription', '').strip()
+    details = data.get('details', 'Prescription issued via Smart E-Prescriptions Hub')
+
+    if not patient_id or not prescription_text:
+        return JsonResponse({'error': 'patient_id and prescription text are required'}, status=400)
+
+    patient = get_object_or_404(Patients, id=patient_id)
+
+    record = MedicalRecord.objects.create(
+        doctor=doctor,
+        clinic=doctor.clinic,
+        patient=patient,
+        details=details,
+        prescription=prescription_text,
+    )
+
+    _log_audit(request.user, 'CREATE_PRESCRIPTION', f"Prescription for {patient.name} (record #{record.id})", request)
+
+    return JsonResponse({
+        'success': True,
+        'record_id': record.id,
+        'pdf_url': f'/doctor/generate-prescription-pdf/{record.id}/',
+        'patient_name': patient.name,
+    })
+
+
+@login_required
+@doctor_required
+def visit_recordings_view(request):
+    """View all stored patient visit transcripts and AI call recordings."""
+    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    recordings = VisitRecording.objects.filter(doctor=doctor).select_related('patient', 'appointment').order_by('-recorded_at')[:100]
+
+    context = {
+        'doctor': doctor,
+        'recordings': recordings,
+        'active_menu': 'visit_recordings',
+    }
+    return render(request, 'visit_recordings.html', context)
 
 # ==============================================================================
 # 11. SMS DISPATCH & COMMUNICATION LOGS
@@ -706,7 +1026,7 @@ def sms_view(request):
         'total_delivered': SmsLog.objects.filter(status='Delivered').count(),
         'active_menu': 'sms'
     }
-    return render(request, 'doctor/sms.html', context)
+    return render(request, 'sms.html', context)
 
 # ==============================================================================
 # 12. REPORTS & ANALYTICS
@@ -728,7 +1048,7 @@ def reports_view(request):
         'high_risk_patients': high_risk_patients,
         'active_menu': 'reports'
     }
-    return render(request, 'doctor/reports.html', context)
+    return render(request, 'reports.html', context)
 
 # ==============================================================================
 # 13. LABELS (Clinical & Triage Tagging)
@@ -754,7 +1074,7 @@ def labels_view(request):
         'patients': patients,
         'active_menu': 'labels'
     }
-    return render(request, 'doctor/labels.html', context)
+    return render(request, 'labels.html', context)
 
 # ==============================================================================
 # 14. LEADS (Inquiries & AI Bot Prospects)
@@ -775,7 +1095,7 @@ def leads_view(request):
         'leads': leads,
         'active_menu': 'leads'
     }
-    return render(request, 'doctor/leads.html', context)
+    return render(request, 'leads.html', context)
 
 # ==============================================================================
 # 15. LOCATIONS (Settings)
@@ -792,7 +1112,7 @@ def locations_view(request):
         'locations': locations,
         'active_menu': 'locations'
     }
-    return render(request, 'doctor/locations.html', context)
+    return render(request, 'locations.html', context)
 
 # ==============================================================================
 # 16. BILLING (Settings)
@@ -820,7 +1140,7 @@ def billing_view(request):
         'total_revenue': total_revenue,
         'active_menu': 'billing'
     }
-    return render(request, 'doctor/billing.html', context)
+    return render(request, 'billing.html', context)
 
 # ==============================================================================
 # 17. AUDIT LOG (Settings)
@@ -836,7 +1156,7 @@ def audit_log_view(request):
         'logs': logs,
         'active_menu': 'audit_log'
     }
-    return render(request, 'doctor/audit_log.html', context)
+    return render(request, 'audit_log.html', context)
 
 # ==============================================================================
 # 18. LABS HUB & TICKET LIFECYCLE
@@ -866,7 +1186,7 @@ def labs_view(request):
         'patients': patients,
         'active_menu': 'labs'
     }
-    return render(request, 'doctor/labs.html', context)
+    return render(request, 'labs.html', context)
 
 @login_required
 @doctor_required
@@ -914,7 +1234,7 @@ def patient_portal_view(request, token):
     """
     portal_token = get_object_or_404(PatientRecordViewToken, token=token)
     if not portal_token.is_valid():
-        return render(request, 'doctor/shared_prescription_expired.html', {'message': 'This patient portal link has expired.'})
+        return render(request, 'shared_prescription_expired.html', {'message': 'This patient portal link has expired.'})
 
     patient = portal_token.patient
     medical_record = portal_token.medical_record
@@ -927,4 +1247,4 @@ def patient_portal_view(request, token):
         'lab_tickets': lab_tickets,
         'qr_data': f"MEDCARE-PASS-{patient.id}-{token[:8]}"
     }
-    return render(request, 'doctor/patient_portal.html', context)
+    return render(request, 'patient_portal.html', context)

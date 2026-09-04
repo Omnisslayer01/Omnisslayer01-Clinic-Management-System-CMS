@@ -6,15 +6,22 @@
 
 :root {
     --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
-    --primary: #0284c7;
-    --primary-light: #38bdf8;
-    --primary-dark: #0369a1;
+    --primary: #38bdf8;
+    --primary-light: #7dd3fc;
+    --primary-dark: #0284c7;
+    --surface: #ffffff;
+    --surface-soft: #f8fbff;
+    --border-soft: #e0f2fe;
+    --text-primary: #334155;
+    --text-muted: #94a3b8;
 }
 
 body {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background-color: var(--surface-soft);
+    color: var(--text-primary);
 }
 
 /* Glassmorphism & Modern Surfaces */

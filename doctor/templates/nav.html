@@ -17,7 +17,7 @@
 </script>
 
 <!-- Desktop Sidebar (CMS Clinic Style) -->
-<aside class="sticky top-0 h-screen w-64 hidden lg:flex flex-col justify-between shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-sm z-30 transition-colors duration-200 font-sans">
+<aside class="sticky top-0 h-screen w-64 hidden lg:flex flex-col justify-between shrink-0 bg-white border-r border-sky-100 shadow-sm z-30 font-sans">
   <div class="flex-1 overflow-y-auto px-3.5 py-5 custom-scrollbar">
     
     <!-- Brand Header -->
@@ -53,18 +53,17 @@
       </div>
     </div>
 
-    <!-- AI Voice Agent & Scribe Quick Launcher -->
+    <!-- AI Voice Agent Quick Launcher -->
     <div class="mb-4 px-1">
       <button 
         type="button" 
-        onclick="window.openAiBookingModal ? window.openAiBookingModal() : (window.location.href='{% url 'medcare_calendar' %}#ai-bot')"
-        class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 shadow-md shadow-sky-500/20 transition-all transform active:scale-95 group"
+        onclick="window.openAiBookingModal ? window.openAiBookingModal() : (window.location.href='{% url 'medcare_calendar' %}')"
+        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium text-white bg-sky-500 hover:bg-sky-600 shadow-sm transition-colors"
       >
         <span class="flex items-center gap-2">
-          <i class="fas fa-microphone-lines text-xs text-sky-200 group-hover:animate-pulse"></i>
-          <span>AI Booking Agent</span>
+          <i class="fas fa-microphone text-xs"></i>
+          <span>AI Booking Assistant</span>
         </span>
-        <span class="text-[9px] px-1.5 py-0.5 rounded bg-white/20 uppercase tracking-widest font-mono">LIVE</span>
       </button>
     </div>
 
@@ -140,9 +139,16 @@
 
       <!-- Prescriptions -->
       <a href="{% url 'medcare_prescriptions' %}" 
-         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'medcare_prescriptions' or active_menu == 'prescriptions' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
-        <i class="fas fa-prescription text-xs w-4 text-center {% if active_menu == 'prescriptions' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'medcare_prescriptions' or active_menu == 'prescriptions' %}bg-sky-50 text-sky-700 font-semibold border border-sky-100{% else %}text-slate-600 hover:bg-sky-50/60 hover:text-slate-800{% endif %}">
+        <i class="fas fa-prescription text-xs w-4 text-center {% if active_menu == 'prescriptions' %}text-sky-500{% else %}text-slate-400{% endif %}"></i>
         <span>Prescriptions</span>
+      </a>
+
+      <!-- Visit Recordings -->
+      <a href="{% url 'medcare_visit_recordings' %}" 
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'medcare_visit_recordings' or active_menu == 'visit_recordings' %}bg-sky-50 text-sky-700 font-semibold border border-sky-100{% else %}text-slate-600 hover:bg-sky-50/60 hover:text-slate-800{% endif %}">
+        <i class="fas fa-microphone-lines text-xs w-4 text-center {% if active_menu == 'visit_recordings' %}text-sky-500{% else %}text-slate-400{% endif %}"></i>
+        <span>Visit Recordings</span>
       </a>
 
       <!-- Labs Lifecycle (Hackathon Compulsory) -->

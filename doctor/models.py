@@ -143,7 +143,7 @@ class Appointments(models.Model):
     start_time = models.TimeField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='scheduled')
     date = models.DateField()
-    priority_tier = models.CharField(max_length=20, default='Routine', choices=(('Routine', 'Routine'), ('Waitlist', 'Waitlist'), ('Priority-Revisit', 'Priority-Revisit')))
+    priority_tier = models.CharField(max_length=20, default='Routine', choices=(('Routine', 'Routine'), ('Waitlist', 'Waitlist'), ('Priority-Revisit', 'Priority-Revisit'), ('Urgent', 'Urgent')))
     reminder_tier = models.CharField(max_length=20, default='Standard', choices=(('Standard', 'Standard'), ('Aggressive', 'Aggressive (High-Risk)')))
     reminder_sent = models.BooleanField(default=False)
     reason_for_visit = models.CharField(max_length=255, blank=True, default='Consultation')
@@ -419,6 +419,32 @@ class ClinicLocation(models.Model):
 
     def __str__(self):
         return f"{self.name} (Room {self.room_number})"
+
+class VisitRecording(models.Model):
+    """Stored transcripts and consultation notes from AI-assisted patient interactions."""
+    SOURCE_CHOICES = (
+        ('ai_booking', 'AI Booking Call'),
+        ('consultation', 'Live Consultation'),
+        ('ambient_scribe', 'Ambient Scribe'),
+    )
+    doctor = models.ForeignKey(DoctorProfile, on_delete=models.CASCADE, related_name='visit_recordings')
+    patient = models.ForeignKey(Patients, on_delete=models.SET_NULL, null=True, blank=True, related_name='visit_recordings')
+    appointment = models.ForeignKey(Appointments, on_delete=models.SET_NULL, null=True, blank=True, related_name='visit_recordings')
+    recorded_at = models.DateTimeField(default=timezone.now)
+    transcript = models.TextField(help_text="Full conversation or visit transcript")
+    soap_summary = models.TextField(blank=True, default='', help_text="Structured clinical summary")
+    priority_assessed = models.CharField(max_length=20, default='Routine')
+    risk_score = models.IntegerField(default=0)
+    source = models.CharField(max_length=30, default='consultation', choices=SOURCE_CHOICES)
+    duration_seconds = models.IntegerField(default=0, blank=True)
+
+    class Meta:
+        ordering = ['-recorded_at']
+
+    def __str__(self):
+        patient_name = self.patient.name if self.patient else "Unknown Patient"
+        return f"Visit: {patient_name} ({self.recorded_at.strftime('%Y-%m-%d %H:%M')})"
+
 
 class BillingInvoice(models.Model):
     """Patient billing, invoices, and payment tracking."""

@@ -5,7 +5,7 @@
 {% block title %}{% trans "CMS - Clinic Management System" %}{% endblock %}
 
 {% block content %}
-<div class="relative overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen flex flex-col justify-between">
+<div class="relative overflow-hidden bg-[#f8fbff] text-slate-700 min-h-screen flex flex-col justify-between">
     <!-- Top Modern Navigation -->
     <nav class="sticky top-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800/80 transition-colors duration-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -78,11 +78,15 @@
 
                 <!-- Action Buttons -->
                 <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-2">
-                    <a href="{% url 'register' %}" class="w-full sm:w-auto px-8 py-3.5 rounded-2xl text-sm font-bold text-white bg-sky-600 hover:bg-sky-500 shadow-xl shadow-sky-600/30 hover:shadow-sky-600/40 hover:-translate-y-0.5 transition-all text-center">
-                        <i class="fas fa-stethoscope mr-2"></i>{% trans "Get Started Free" %}
+                    <button type="button" onclick="window.openAiBookingModal && window.openAiBookingModal()"
+                      class="w-full sm:w-auto px-8 py-3.5 rounded-2xl text-sm font-semibold text-white bg-sky-500 hover:bg-sky-600 shadow-lg shadow-sky-200 transition-all text-center">
+                        <i class="fas fa-microphone mr-2"></i>{% trans "Book via AI Assistant" %}
+                    </button>
+                    <a href="{% url 'register' %}" class="w-full sm:w-auto px-8 py-3.5 rounded-2xl text-sm font-semibold text-sky-700 bg-white hover:bg-sky-50 border border-sky-100 transition-all text-center">
+                        <i class="fas fa-stethoscope mr-2"></i>{% trans "For Doctors — Register" %}
                     </a>
-                    <a href="{% url 'demo_login' %}" class="w-full sm:w-auto px-8 py-3.5 rounded-2xl text-sm font-bold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-all text-center">
-                        <i class="fas fa-bolt text-amber-500 mr-2"></i>{% trans "Explore Live Demo" %}
+                    <a href="{% url 'demo_login' %}" class="w-full sm:w-auto px-8 py-3.5 rounded-2xl text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 border border-slate-100 transition-all text-center">
+                        {% trans "Doctor Demo" %}
                     </a>
                 </div>
             </div>

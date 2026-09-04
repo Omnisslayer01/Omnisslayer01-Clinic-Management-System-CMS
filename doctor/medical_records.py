@@ -12,6 +12,9 @@ from django.utils.dateparse import parse_datetime
 from django.http import HttpResponse, JsonResponse
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib.units import inch, mm
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from io import BytesIO
 import os
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -173,12 +176,39 @@ def _render_prescription_pdf_response(request, medical_record, inline=False):
     filename = f"prescription_{patient.name}_{formatted_date}.pdf"
     disposition = 'inline' if inline else 'attachment'
     response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
-    
-    if HTML is None:
-        return HttpResponse("PDF generation requires WeasyPrint and GTK library dependencies.", status=501)
-    
-    html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
-    html.write_pdf(response)
+
+    if HTML is not None:
+        try:
+            html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
+            html.write_pdf(response)
+            return response
+        except Exception:
+            pass
+
+    # Fallback: ReportLab (works on Windows without GTK/WeasyPrint system libs)
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=inch, leftMargin=inch, topMargin=inch, bottomMargin=inch)
+    styles = getSampleStyleSheet()
+    story = [
+        Paragraph(f"<b>Prescription</b>", styles['Title']),
+        Spacer(1, 12),
+        Paragraph(f"<b>Doctor:</b> {doctor_name}", styles['Normal']),
+        Paragraph(f"<b>Specialization:</b> {doctor_profile.specialization or 'General'}", styles['Normal']),
+        Paragraph(f"<b>Patient:</b> {patient.name}", styles['Normal']),
+        Paragraph(f"<b>Date:</b> {formatted_date}", styles['Normal']),
+        Spacer(1, 16),
+        Paragraph(f"<b>Prescription:</b>", styles['Heading3']),
+        Paragraph((medical_record.prescription or 'N/A').replace('\n', '<br/>'), styles['Normal']),
+    ]
+    if medical_record.remarks:
+        story.extend([
+            Spacer(1, 12),
+            Paragraph(f"<b>Remarks:</b> {medical_record.remarks}", styles['Normal']),
+        ])
+    doc.build(story)
+    pdf = buffer.getvalue()
+    buffer.close()
+    response.write(pdf)
     return response
 
 @login_required

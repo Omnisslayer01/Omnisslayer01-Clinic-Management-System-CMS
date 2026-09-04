@@ -1,272 +1,170 @@
 {% extends 'base.html' %}
 {% load static i18n %}
 
-{% block title %}Calendar & Scheduling - CMS{% endblock %}
+{% block title %}Calendar - CMS{% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex bg-slate-50 dark:bg-slate-950 font-sans transition-colors duration-200">
-  {% include 'doctor/nav.html' %}
+<div class="min-h-screen flex bg-[#f8fbff] font-sans">
+  {% include 'nav.html' %}
 
   <main class="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
-    <!-- React TopHeader Command Bar -->
     <div id="topHeaderRoot"></div>
 
-    <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 custom-scrollbar">
-      
-      <!-- Page Header & Action Toolbar -->
+    <div class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 custom-scrollbar">
+
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <div class="flex items-center gap-2.5">
-            <span class="w-2.5 h-2.5 rounded-full bg-sky-500 animate-pulse"></span>
-            <h1 class="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Clinical Appointment Calendar
-            </h1>
-            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300">
-              Auto-Slot Engine Active
-            </span>
-          </div>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Dr. Zamil's schedule · 20-minute discrete slots with waitlist backfill cascade
-          </p>
+          <h1 class="text-2xl font-semibold text-slate-800 tracking-tight">Appointment Calendar</h1>
+          <p class="text-sm text-slate-500 mt-1">View booked slots and manage patient appointments</p>
         </div>
-
-        <div class="flex items-center gap-2.5 shrink-0">
-          <button 
-            type="button" 
-            onclick="window.openAiBookingModal ? window.openAiBookingModal() : null"
-            class="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 shadow-sm shadow-sky-500/20 flex items-center gap-2 transition-all active:scale-95"
-          >
+        <div class="flex gap-2">
+          <button type="button" onclick="window.openAiBookingModal && window.openAiBookingModal()"
+            class="px-4 py-2.5 rounded-xl text-sm font-medium text-sky-600 bg-sky-50 hover:bg-sky-100 border border-sky-100 transition-colors flex items-center gap-2">
             <i class="fas fa-microphone text-xs"></i>
-            <span>AI Voice Booking</span>
+            AI Booking
           </button>
-
-          <button 
-            type="button" 
-            onclick="openQuickBookModal()"
-            class="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 shadow-sm shadow-sky-500/20 flex items-center gap-2 transition-all active:scale-95"
-          >
+          <button type="button" onclick="openQuickBookModal()"
+            class="px-4 py-2.5 rounded-xl text-sm font-medium text-white bg-sky-500 hover:bg-sky-600 shadow-sm transition-colors flex items-center gap-2">
             <i class="fas fa-plus text-xs"></i>
-            <span>Manual Booking</span>
+            Book Slot
           </button>
         </div>
       </div>
 
-      <!-- Main Calendar Grid + Sidebar Layout -->
-      <div class="grid grid-cols-1 lg:grid-cols-4 gap-5">
-        
-        <!-- Left: Slot Grid (3 cols) -->
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+
         <div class="lg:col-span-3 space-y-4">
-          
-          <!-- Calendar Controls Bar -->
-          <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-3">
+          <div class="p-4 rounded-2xl bg-white border border-sky-100 shadow-sm flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-2">
-              <button onclick="changeDate(-1)" class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs">
+              <button onclick="changeDate(-1)" class="p-2 rounded-xl border border-sky-100 text-slate-500 hover:bg-sky-50 text-sm">
                 <i class="fas fa-chevron-left"></i>
               </button>
-              <input 
-                type="date" 
-                id="currentCalendarDate" 
-                value="{{ selected_date }}" 
-                onchange="onDateChanged(this.value)"
-                class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-sky-500"
-              />
-              <button onclick="changeDate(1)" class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs">
+              <input type="date" id="currentCalendarDate" value="{{ selected_date }}" onchange="loadCalendarData()"
+                class="px-3 py-2 rounded-xl border border-sky-100 bg-white text-sm font-medium text-slate-700 outline-none focus:border-sky-300" />
+              <button onclick="changeDate(1)" class="p-2 rounded-xl border border-sky-100 text-slate-500 hover:bg-sky-50 text-sm">
                 <i class="fas fa-chevron-right"></i>
               </button>
-              <button onclick="goToToday()" class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
-                Today
-              </button>
+              <button onclick="goToToday()" class="px-3 py-2 rounded-xl border border-sky-100 text-sm text-slate-600 hover:bg-sky-50">Today</button>
             </div>
-
-            <!-- Legend -->
-            <div class="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>Confirmed</span>
-              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span>Scheduled</span>
-              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>In Consult</span>
-              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full border border-dashed border-slate-400"></span>Open Slot</span>
+            <div class="flex items-center gap-4 text-xs text-slate-400">
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-sky-400"></span>Booked</span>
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full border border-dashed border-sky-200"></span>Open</span>
             </div>
           </div>
 
-          <!-- Discrete Slots Timeline Container -->
-          <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <i class="fas fa-clock text-sky-500"></i>
-                <span>Generated 20-Min Appointment Slots</span>
-              </h3>
-              <span class="text-[11px] text-slate-400 font-mono">Working Block: 09:00 - 17:00</span>
-            </div>
-
-            <!-- Dynamic Slot Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="slotsGrid">
-              <!-- Rendered via JS -->
+          <div class="p-5 rounded-2xl bg-white border border-sky-100 shadow-sm">
+            <h3 class="text-sm font-semibold text-slate-700 mb-4">Time slots</h3>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3" id="slotsGrid">
+              <p class="text-sm text-slate-400 col-span-full text-center py-8">Loading slots...</p>
             </div>
           </div>
         </div>
 
-        <!-- Right: Daily Occupancy & Quick Queue Widget (1 col) -->
         <div class="space-y-4">
-          
-          <!-- Capacity Gauge -->
-          <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-              <i class="fas fa-chart-pie text-sky-500"></i>
-              <span>Daily Capacity</span>
-            </h3>
-
-            <div>
-              <div class="flex justify-between text-xs font-bold mb-1.5">
-                <span class="text-slate-600 dark:text-slate-400">Occupancy</span>
-                <span class="text-sky-600 dark:text-sky-400">{{ occupancy_pct }}%</span>
-              </div>
-              <div class="w-full h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                <div class="h-full rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 transition-all duration-500" style="width: {{ occupancy_pct }}%;"></div>
-              </div>
-              <div class="flex justify-between text-[11px] text-slate-400 mt-2">
-                <span>Booked: <strong>{{ booked_count }}</strong></span>
-                <span>Total Slots: <strong>{{ total_slots }}</strong></span>
-              </div>
+          <div class="p-5 rounded-2xl bg-white border border-sky-100 shadow-sm">
+            <h3 class="text-sm font-semibold text-slate-700 mb-3">Daily capacity</h3>
+            <div class="flex justify-between text-xs text-slate-500 mb-2">
+              <span>Occupancy</span>
+              <span class="font-medium text-sky-600">{{ occupancy_pct }}%</span>
             </div>
-
-            <!-- Auto Backfill CTA -->
-            <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
-              <a href="{% url 'medcare_waitlist' %}" class="w-full flex items-center justify-between p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-xs text-amber-800 dark:text-amber-300 hover:bg-amber-100 transition-all">
-                <span class="flex items-center gap-2">
-                  <i class="fas fa-hourglass-start"></i>
-                  <span>Waitlist Engine</span>
-                </span>
-                <i class="fas fa-arrow-right text-[10px]"></i>
-              </a>
+            <div class="w-full h-2 rounded-full bg-sky-50 overflow-hidden">
+              <div class="h-full rounded-full bg-sky-400 transition-all" style="width: {{ occupancy_pct }}%;"></div>
             </div>
+            <p class="text-xs text-slate-400 mt-2">{{ booked_count }} booked · {{ total_slots }} total slots</p>
           </div>
 
-          <!-- Today's Schedule Agenda -->
-          <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-            <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center justify-between">
-              <span class="flex items-center gap-2">
-                <i class="fas fa-list-check text-sky-500"></i>
-                <span>Day Agenda</span>
-              </span>
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 font-bold">
-                {{ appointments_today|length }}
-              </span>
+          <div class="p-5 rounded-2xl bg-white border border-sky-100 shadow-sm">
+            <h3 class="text-sm font-semibold text-slate-700 mb-3 flex justify-between items-center">
+              Day agenda
+              <span class="text-xs font-normal text-slate-400">{{ appointments_today|length }} appts</span>
             </h3>
-
-            <div class="space-y-2.5 max-h-[360px] overflow-y-auto custom-scrollbar">
+            <div class="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
               {% for appt in appointments_today %}
-                <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 flex items-center justify-between">
-                  <div class="min-w-0 flex-1">
-                    <p class="text-xs font-bold text-slate-900 dark:text-white truncate">{{ appt.patient.name }}</p>
-                    <p class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
-                      <i class="far fa-clock text-[10px]"></i>
-                      <span>{{ appt.start_time|time:"H:i" }} · {{ appt.reason_for_visit|default:"General" }}</span>
-                    </p>
-                  </div>
-                  <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                    appt.status == 'completed' ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                  }">
-                    {{ appt.status }}
-                  </span>
-                </div>
+              <div class="p-3 rounded-xl bg-sky-50/50 border border-sky-50">
+                <p class="text-sm font-medium text-slate-800">{{ appt.patient.name }}</p>
+                <p class="text-xs text-slate-400 mt-0.5">{{ appt.start_time|time:"H:i" }} · {{ appt.reason_for_visit|default:"Consultation" }}</p>
+                <span class="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-medium
+                  {% if appt.priority_tier == 'Urgent' %}bg-rose-50 text-rose-600
+                  {% elif appt.priority_tier == 'Priority-Revisit' %}bg-amber-50 text-amber-600
+                  {% else %}bg-sky-100 text-sky-600{% endif %}">
+                  {{ appt.priority_tier }}
+                </span>
+              </div>
               {% empty %}
-                <div class="text-center py-6 text-slate-400 text-xs">
-                  <i class="far fa-calendar-xmark text-2xl mb-2 text-slate-300 block"></i>
-                  No appointments booked for this day.
-                </div>
+              <p class="text-xs text-slate-400 text-center py-6">No appointments this day</p>
               {% endfor %}
             </div>
           </div>
-
         </div>
-
       </div>
-
     </div>
   </main>
 </div>
 
-<!-- Manual Slot Booking Modal -->
-<div id="quickBookModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in font-sans">
-  <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-5">
-    <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-      <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-        <i class="fas fa-calendar-plus text-sky-500"></i>
-        <span>Book Clinical Slot</span>
-      </h3>
-      <button onclick="closeQuickBookModal()" class="text-slate-400 hover:text-slate-600">
-        <i class="fas fa-times"></i>
-      </button>
+<!-- Booking Modal -->
+<div id="quickBookModal" class="fixed inset-0 z-50 hidden bg-slate-900/30 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="bg-white w-full max-w-md rounded-2xl border border-sky-100 shadow-xl p-6 space-y-4">
+    <div class="flex justify-between items-center">
+      <h3 class="text-sm font-semibold text-slate-800">Book appointment</h3>
+      <button onclick="closeQuickBookModal()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
     </div>
-
-    <form id="bookSlotForm" onsubmit="handleBookSlotSubmit(event)" class="space-y-4 text-xs">
+    <form id="bookSlotForm" onsubmit="handleBookSlotSubmit(event)" class="space-y-3 text-sm">
       <div>
-        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Select Patient</label>
-        <select id="bookPatientSelect" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white outline-none focus:border-sky-500">
-          <option value="">-- Choose Existing Patient --</option>
+        <label class="block text-xs font-medium text-slate-500 mb-1">Patient</label>
+        <select id="bookPatientSelect" class="w-full px-3 py-2 rounded-xl border border-sky-100 outline-none focus:border-sky-300" required>
+          <option value="">— Select patient —</option>
           {% for p in patients %}
-            <option value="{{ p.id }}">{{ p.name }} ({{ p.phone_number }}) - Risk: {{ p.risk_tier }}</option>
+          <option value="{{ p.id }}">{{ p.name }} ({{ p.phone_number }})</option>
           {% endfor %}
         </select>
       </div>
-
       <div class="grid grid-cols-2 gap-3">
         <div>
-          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Date</label>
-          <input type="date" id="bookSlotDate" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white outline-none" required />
+          <label class="block text-xs font-medium text-slate-500 mb-1">Date</label>
+          <input type="date" id="bookSlotDate" class="w-full px-3 py-2 rounded-xl border border-sky-100 outline-none" required />
         </div>
         <div>
-          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Slot Time</label>
-          <input type="time" id="bookSlotTime" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white outline-none" required />
+          <label class="block text-xs font-medium text-slate-500 mb-1">Time</label>
+          <input type="time" id="bookSlotTime" class="w-full px-3 py-2 rounded-xl border border-sky-100 outline-none" required />
         </div>
       </div>
-
       <div>
-        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Reason for Consultation</label>
-        <input type="text" id="bookSlotReason" placeholder="e.g. Hypertension checkup, acute fever" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white outline-none" />
+        <label class="block text-xs font-medium text-slate-500 mb-1">Reason</label>
+        <input type="text" id="bookSlotReason" placeholder="Consultation reason" class="w-full px-3 py-2 rounded-xl border border-sky-100 outline-none" />
       </div>
-
       <div>
-        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Priority Tier</label>
-        <select id="bookSlotPriority" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white outline-none">
+        <label class="block text-xs font-medium text-slate-500 mb-1">Priority</label>
+        <select id="bookSlotPriority" class="w-full px-3 py-2 rounded-xl border border-sky-100 outline-none">
           <option value="Routine">Routine</option>
-          <option value="Priority-Revisit">Priority-Revisit (Unwell follow-up)</option>
-          <option value="Urgent">Urgent Consultation</option>
+          <option value="Priority-Revisit">Priority</option>
+          <option value="Urgent">Urgent</option>
         </select>
       </div>
-
-      <div class="pt-2 flex items-center justify-end gap-2">
-        <button type="button" onclick="closeQuickBookModal()" class="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100">Cancel</button>
-        <button type="submit" class="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold shadow-sm shadow-sky-500/20">Confirm Booking</button>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="closeQuickBookModal()" class="px-4 py-2 text-slate-500 text-sm">Cancel</button>
+        <button type="submit" class="px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium">Confirm</button>
       </div>
     </form>
   </div>
 </div>
 
 <script>
-  // Discrete timeslot generator (09:00 - 17:00, 20m slots, lunch 13:00 - 14:00)
-  const discreteSlots = [
-    "09:00", "09:20", "09:40",
-    "10:00", "10:20", "10:40",
-    "11:00", "11:20", "11:40",
-    "12:00", "12:20", "12:40",
-    // 13:00 - 14:00 Lunch Break
-    "14:00", "14:20", "14:40",
-    "15:00", "15:20", "15:40",
-    "16:00", "16:20", "16:40"
-  ];
-
   let bookedEvents = [];
+  let availableSlots = [];
 
-  async function loadCalendarEvents() {
+  async function loadCalendarData() {
     const curDate = document.getElementById('currentCalendarDate').value;
     try {
-      const res = await fetch(`/doctor/api/calendar-events/?start=${curDate}&end=${curDate}`);
-      const data = await res.json();
-      bookedEvents = data.events || [];
+      const [eventsRes, slotsRes] = await Promise.all([
+        fetch(`/doctor/api/calendar-events/?start=${curDate}&end=${curDate}`),
+        fetch(`/doctor/api/available-slots/?date=${curDate}`)
+      ]);
+      const eventsData = await eventsRes.json();
+      const slotsData = await slotsRes.json();
+      bookedEvents = eventsData.events || [];
+      availableSlots = slotsData.slots || [];
       renderSlotsGrid(curDate);
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
   }
 
   function renderSlotsGrid(dateStr) {
@@ -274,41 +172,35 @@
     if (!container) return;
     container.innerHTML = '';
 
-    discreteSlots.forEach(timeStr => {
-      // Find if booked
-      const matched = bookedEvents.find(e => {
-        const eventTime = e.start.split('T')[1].substring(0, 5);
-        return eventTime === timeStr;
-      });
+    const allSlots = [...new Set([...availableSlots, ...bookedEvents.map(e => e.start.split('T')[1].substring(0, 5))])].sort();
 
+    if (!allSlots.length) {
+      container.innerHTML = '<p class="text-sm text-slate-400 col-span-full text-center py-8">No slots available — doctor may be off this day.</p>';
+      return;
+    }
+
+    allSlots.forEach(timeStr => {
+      const matched = bookedEvents.find(e => e.start.split('T')[1].substring(0, 5) === timeStr);
       const card = document.createElement('div');
-      card.className = "p-3 rounded-2xl border transition-all duration-150 flex flex-col justify-between ";
-
       if (matched) {
-        card.className += "bg-sky-50/70 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800/80 shadow-sm";
+        card.className = 'p-3 rounded-xl bg-sky-50 border border-sky-100';
         card.innerHTML = `
-          <div class="flex items-center justify-between mb-1">
-            <span class="text-xs font-black text-sky-700 dark:text-sky-300 font-mono">${timeStr}</span>
-            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-sky-200 text-sky-800 dark:bg-sky-900 dark:text-sky-200">${matched.status}</span>
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-xs font-semibold text-sky-700 font-mono">${timeStr}</span>
+            <span class="text-[10px] font-medium text-sky-500 uppercase">${matched.status}</span>
           </div>
-          <div class="mt-1">
-            <p class="text-xs font-bold text-slate-900 dark:text-white truncate">${matched.patient_name}</p>
-            <p class="text-[10px] text-slate-500 dark:text-slate-400 truncate">${matched.title}</p>
-          </div>
+          <p class="text-sm font-medium text-slate-800 truncate">${matched.patient_name}</p>
+          <p class="text-[10px] text-slate-400 truncate">${matched.title}</p>
         `;
-      } else {
-        card.className += "border-dashed border-slate-200 dark:border-slate-700/80 hover:border-sky-400 dark:hover:border-sky-500 bg-white/60 dark:bg-slate-900/40 cursor-pointer group";
+      } else if (availableSlots.includes(timeStr)) {
+        card.className = 'p-3 rounded-xl border border-dashed border-sky-100 hover:border-sky-300 hover:bg-sky-50/50 cursor-pointer transition-colors';
         card.onclick = () => openBookingForSlot(dateStr, timeStr);
         card.innerHTML = `
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-slate-400 dark:text-slate-500 font-mono group-hover:text-sky-600">${timeStr}</span>
-            <span class="text-[10px] text-slate-400 group-hover:text-sky-600 font-semibold">+ Book</span>
-          </div>
-          <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-2 font-medium">Available (20m)</p>
+          <span class="text-xs font-medium text-slate-400 font-mono">${timeStr}</span>
+          <p class="text-[11px] text-sky-400 mt-1">Available · click to book</p>
         `;
       }
-
-      container.appendChild(card);
+      if (card.className) container.appendChild(card);
     });
   }
 
@@ -319,9 +211,8 @@
   }
 
   function openQuickBookModal() {
-    const curDate = document.getElementById('currentCalendarDate').value;
-    document.getElementById('bookSlotDate').value = curDate;
-    document.getElementById('bookSlotTime').value = "10:00";
+    document.getElementById('bookSlotDate').value = document.getElementById('currentCalendarDate').value;
+    document.getElementById('bookSlotTime').value = availableSlots[0] || '10:00';
     document.getElementById('quickBookModal').classList.remove('hidden');
   }
 
@@ -331,44 +222,31 @@
 
   async function handleBookSlotSubmit(e) {
     e.preventDefault();
-    const patientId = document.getElementById('bookPatientSelect').value;
-    const dateVal = document.getElementById('bookSlotDate').value;
-    const timeVal = document.getElementById('bookSlotTime').value;
-    const reason = document.getElementById('bookSlotReason').value;
-    const priority = document.getElementById('bookSlotPriority').value;
-
-    if (!patientId) {
-      (window.CmsToasts || window.ImhotepToasts) && (window.CmsToasts || window.ImhotepToasts).notify('Please select a patient.', 'warning');
-      return;
-    }
-
+    const body = {
+      patient_id: document.getElementById('bookPatientSelect').value,
+      date: document.getElementById('bookSlotDate').value,
+      start_time: document.getElementById('bookSlotTime').value,
+      reason: document.getElementById('bookSlotReason').value,
+      priority: document.getElementById('bookSlotPriority').value,
+    };
     try {
       const res = await fetch('/doctor/api/book-slot/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patient_id: patientId,
-          date: dateVal,
-          start_time: timeVal,
-          reason: reason,
-          priority: priority
-        })
+        body: JSON.stringify(body)
       });
       const data = await res.json();
       if (data.success) {
-        (window.CmsToasts || window.ImhotepToasts) && (window.CmsToasts || window.ImhotepToasts).notify(`Slot booked for ${data.patient_name}!`, 'success');
+        (window.CmsToasts || window.ImhotepToasts)?.notify(`Booked for ${data.patient_name}`, 'success');
         closeQuickBookModal();
-        loadCalendarEvents();
+        loadCalendarData();
+        location.reload();
       } else {
-        (window.CmsToasts || window.ImhotepToasts) && (window.CmsToasts || window.ImhotepToasts).notify(data.error || 'Booking failed', 'error');
+        (window.CmsToasts || window.ImhotepToasts)?.notify(data.error || 'Booking failed', 'error');
       }
     } catch (err) {
-      (window.CmsToasts || window.ImhotepToasts) && (window.CmsToasts || window.ImhotepToasts).notify('Network error booking slot', 'error');
+      (window.CmsToasts || window.ImhotepToasts)?.notify('Network error', 'error');
     }
-  }
-
-  function onDateChanged(newDate) {
-    loadCalendarEvents();
   }
 
   function changeDate(days) {
@@ -376,24 +254,22 @@
     const d = new Date(input.value);
     d.setDate(d.getDate() + days);
     input.value = d.toISOString().split('T')[0];
-    loadCalendarEvents();
+    loadCalendarData();
   }
 
   function goToToday() {
-    const input = document.getElementById('currentCalendarDate');
-    input.value = new Date().toISOString().split('T')[0];
-    loadCalendarEvents();
+    document.getElementById('currentCalendarDate').value = new Date().toISOString().split('T')[0];
+    loadCalendarData();
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Mount TopHeader
     if (window.mountReactComponent && window.TopHeader) {
       window.mountReactComponent(window.TopHeader, 'topHeaderRoot', {
-        doctorName: "{{ doctor.user.get_full_name|default:'Dr. Zamil' }}",
-        specialization: "{{ doctor.specialization|default:'Lead Clinical Practitioner' }}"
+        doctorName: "{{ doctor.user.get_full_name|default:'Doctor' }}",
+        specialization: "{{ doctor.specialization|default:'General Practice' }}"
       });
     }
-    loadCalendarEvents();
+    loadCalendarData();
   });
 </script>
 {% endblock %}

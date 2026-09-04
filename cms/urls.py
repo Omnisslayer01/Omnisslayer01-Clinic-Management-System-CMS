@@ -24,13 +24,13 @@ from django.http import HttpResponse
 import os
 from doctor import medcare_views
 
-handler401 = 'tasks.error_handle.handler401'
-handler405 = 'tasks.error_handle.handler405'
-handler408 = 'tasks.error_handle.handler408'
-handler429 = 'tasks.error_handle.handler429'
-handler502 = 'tasks.error_handle.handler502'
-handler503 = 'tasks.error_handle.handler503'
-handler504 = 'tasks.error_handle.handler504'
+handler401 = 'cms.error_views.custom_permission_denied'
+handler405 = 'cms.error_views.custom_bad_request'
+handler408 = 'cms.error_views.custom_bad_request'
+handler429 = 'cms.error_views.custom_bad_request'
+handler502 = 'cms.error_views.custom_server_error'
+handler503 = 'cms.error_views.custom_server_error'
+handler504 = 'cms.error_views.custom_server_error'
 
 # Custom error handlers
 handler400 = 'cms.error_views.custom_bad_request'

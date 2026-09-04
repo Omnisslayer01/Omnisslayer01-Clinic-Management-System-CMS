@@ -49,12 +49,14 @@ urlpatterns = [
     
     # 2. AI Conversational Booking & Emergency Triage
     path('api/ai-booking-agent/', medcare_views.api_ai_booking_agent, name='api_ai_booking_agent'),
+    path('api/available-slots/', medcare_views.api_available_slots, name='api_available_slots'),
     
     # 3. Ambient Consultation Scribe
     path('api/ambient-scribe/', medcare_views.api_ambient_scribe, name='api_ambient_scribe'),
     
-    # 4. Smart Drug Search
+    # 4. Smart Drug Search & Prescription Save
     path('api/drug-search/', medcare_views.api_drug_search, name='api_drug_search'),
+    path('api/save-prescription/', medcare_views.api_save_prescription, name='api_save_prescription'),
     
     # 5. Live Token Queue
     path('queue/', medcare_views.queue_view, name='medcare_queue'),
@@ -75,6 +77,9 @@ urlpatterns = [
     
     # 10. Prescriptions Hub
     path('prescriptions/', medcare_views.prescriptions_view, name='medcare_prescriptions'),
+    
+    # 10b. Visit Recordings
+    path('visit-recordings/', medcare_views.visit_recordings_view, name='medcare_visit_recordings'),
     
     # 11. SMS Dispatch & Logs
     path('sms/', medcare_views.sms_view, name='medcare_sms'),
