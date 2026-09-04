@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}Choose Username - CMS{% endblock %}
+
+{% block content %}
+<section class="min-h-[90vh] flex items-center justify-center p-4 md:p-8 bg-slate-50 dark:bg-slate-950 font-sans transition-colors duration-200">
+  <div class="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl p-8 space-y-6">
+    
+    <div class="text-center">
+      <div class="w-14 h-14 mx-auto rounded-2xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center text-xl border border-sky-100 dark:border-sky-900/50 shadow-sm mb-3">
+        <i class="fas fa-user-circle"></i>
+      </div>
+      <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">{% trans "Choose a Username" %}</h1>
+      <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+        {% trans "The username from your Google account is already taken" %}
+      </p>
+    </div>
+
+    <form action="{% url 'add_username_google_login' %}" class="space-y-4" method="post">
+      {% csrf_token %}
+      
+      <div>
+        <label for="username" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+          <i class="fas fa-at text-sky-500 mr-1"></i>{% trans "Username" %}
+        </label>
+        <div class="relative">
+          <input type="text" name="username" id="username" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all" placeholder="Choose a unique username" required>
+        </div>
+      </div>
+
+      <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/50 text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+        <i class="fas fa-info-circle text-sky-500 mr-1.5"></i>
+        <span>{% trans "After choosing a username, you'll be asked to select your role (patient or doctor) and provide a few more details." %}</span>
+      </div>
+
+      <div class="pt-2">
+        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 shadow-md shadow-sky-500/20 transition-all">
+          <span>{% trans "Continue" %}</span>
+          <i class="fas fa-arrow-right text-xs"></i>
+        </button>
+      </div>
+    </form>
+
+    <div class="text-center pt-2">
+      <p class="text-xs text-slate-500 dark:text-slate-400">
+        Changed your mind?
+        <a href="{% url 'login' %}" class="font-bold text-sky-600 hover:text-sky-500 ml-1">{% trans "Back to login" %}</a>
+      </p>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}Patient Profile - CMS{% endblock %}
+
+{% block extra_head %}
+<style>
+    .medical-content {
+        line-height: 1.6;
+    }
+    .medical-content ul { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+    .medical-content ol { list-style-type: decimal; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+    .medical-content strong { font-weight: 700; }
+    .medical-content em { font-style: italic; }
+    .medical-content p { margin-bottom: 0.5rem; }
+    
+    .prescription-box {
+        position: relative;
+        background: linear-gradient(135deg, rgba(240, 249, 255, 0.7) 0%, rgba(224, 242, 254, 0.4) 100%);
+        border-left: 4px solid #0284c7;
+    }
+    .dark .prescription-box {
+        background: linear-gradient(135deg, rgba(12, 74, 110, 0.2) 0%, rgba(15, 23, 42, 0.6) 100%);
+        border-left: 4px solid #38bdf8;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <!-- Sidebar Navigation -->
+    {% include "nav.html" %}
+
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- React Top Header Mount -->
+        <div id="react-top-header"></div>
+
+        <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-8">
+            <!-- Back Navigation -->
+            <div class="flex items-center justify-between">
+                <a href="{% url 'show_patients' %}" class="inline-flex items-center gap-2 text-xs font-bold text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back to Patient Directory</span>
+                </a>
+            </div>
+
+            {% if patients %}
+            {% with patient=patients.0 %}
+            <!-- Patient Profile Header Card -->
+            <div class="relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-sm">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+                        <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-white font-extrabold flex items-center justify-center text-3xl shadow-lg shadow-sky-500/20 shrink-0">
+                            {{ patient.name|slice:":1"|upper }}
+                        </div>
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2 mb-1.5">
+                                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+                                    {{ patient.name }}
+                                </h1>
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${patient.gender|lower == 'female' ? 'bg-pink-50 text-pink-700' : 'bg-blue-50 text-blue-700'}">
+                                    {{ patient.gender|default:"Not specified" }}
+                                </span>
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+                                {% if patient.date_of_birth %}
+                                <span class="flex items-center gap-1.5">
+                                    <i class="far fa-calendar text-sky-500"></i>
+                                    DOB: {{ patient.date_of_birth }} {% if patient_age %}({{ patient_age }} yrs){% endif %}
+                                </span>
+                                {% endif %}
+                                {% if patient.phone_number %}
+                                <a href="tel:{{ patient.phone_number }}" class="flex items-center gap-1.5 hover:text-sky-600 font-mono">
+                                    <i class="fas fa-phone text-emerald-500"></i>
+                                    {{ patient.phone_number }}
+                                </a>
+                                {% endif %}
+                                {% if patient.address %}
+                                <span class="flex items-center gap-1.5">
+                                    <i class="fas fa-map-marker-alt text-rose-500"></i>
+                                    {{ patient.address }}
+                                </span>
+                                {% endif %}
+                                <span class="flex items-center gap-1.5">
+                                    <i class="far fa-clock text-slate-400"></i>
+                                    Registered: {{ patient.date_added|date:"M d, Y" }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <a href="{% url 'add_medical_record' %}?patient_id={{ patient.id }}" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 hover:shadow-lg transition-all">
+                            <i class="fas fa-file-medical"></i>
+                            <span>New Clinical Note</span>
+                        </a>
+                        <a href="{% url 'schedule_appointment' %}?patient_id={{ patient.id }}" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-all">
+                            <i class="fas fa-calendar-plus"></i>
+                            <span>Book Visit</span>
+                        </a>
+                        <a href="{% url 'update_patient' %}?patient_id={{ patient.id }}" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Edit Info">
+                            <i class="fas fa-pen"></i>
+                        </a>
+                        {% if request.user.is_doctor %}
+                        <button type="button" onclick="openDeleteModal()" class="p-2.5 rounded-xl border border-rose-200 dark:border-rose-900/60 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors" title="Delete Patient">
+                            <i class="fas fa-trash-can"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Medical Records & Consultations Timeline -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i class="fas fa-notes-medical text-sky-500"></i>
+                            <span>Clinical Consultations & Prescriptions</span>
+                        </h2>
+                        <p class="text-xs text-slate-500">Chronological medical history and prescription logs</p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        Total: {{ records|length }} Records
+                    </span>
+                </div>
+
+                {% if page_obj %}
+                <div class="space-y-4">
+                    {% for record in page_obj %}
+                    <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm hover:shadow-md transition-all">
+                        <!-- Record Header -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2.5 rounded-2xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400">
+                                    <i class="far fa-calendar-check text-base"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-sm font-bold text-slate-900 dark:text-white">
+                                        Consultation on {{ record.date|date:"F d, Y" }}
+                                    </h3>
+                                    <span class="text-[11px] text-slate-400">Record ID: #{{ record.id }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Action buttons -->
+                            <div class="flex items-center gap-2">
+                                {% if record.prescription %}
+                                <a href="{% url 'generate_prescription_pdf' record.id %}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold hover:bg-emerald-100 transition-colors">
+                                    <i class="fas fa-file-pdf"></i>
+                                    <span>Download PDF</span>
+                                </a>
+                                <button type="button" 
+                                        onclick="openSharePrescriptionModal({ recordId: {{ record.id }}, patientName: '{{ patient.name|escapejs }}', initialShareable: {{ record.is_share_link_active|yesno:'true,false' }}, initialShareUrl: '{{ record.get_share_url|escapejs }}', csrfToken: '{{ csrf_token }}' })"
+                                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-xs font-semibold hover:bg-sky-100 transition-colors">
+                                    <i class="fas fa-share-nodes"></i>
+                                    <span>Share Link</span>
+                                </button>
+                                {% endif %}
+                                {% if request.user.is_doctor %}
+                                <a href="{% url 'update_medical_record' %}?medical_record_id={{ record.id }}" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 transition-colors" title="Edit Record">
+                                    <i class="fas fa-pen text-xs"></i>
+                                </a>
+                                <button type="button" onclick="openDeleteRecordModal('{{ record.id }}')" class="p-1.5 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-colors" title="Delete Record">
+                                    <i class="fas fa-trash-can text-xs"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Record Body -->
+                        <div class="mt-4 space-y-4 text-xs sm:text-sm">
+                            <!-- Clinical Notes -->
+                            {% if record.details %}
+                            <div>
+                                <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                                    Clinical Diagnosis & Notes
+                                </h4>
+                                <div class="text-slate-700 dark:text-slate-300 medical-content leading-relaxed">
+                                    {{ record.details|safe }}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Remarks -->
+                            {% if record.remarks %}
+                            <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 text-xs">
+                                <strong class="text-slate-700 dark:text-slate-200">Doctor Remarks:</strong> {{ record.remarks }}
+                            </div>
+                            {% endif %}
+
+                            <!-- E-Prescription -->
+                            {% if record.prescription %}
+                            <div class="prescription-box p-4 rounded-2xl space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2 text-sky-800 dark:text-sky-300 font-bold text-xs">
+                                        <i class="fas fa-prescription text-sm"></i>
+                                        <span>Prescription (Rx)</span>
+                                    </div>
+                                    <span class="text-[10px] uppercase font-bold text-sky-600 dark:text-sky-400">Validated</span>
+                                </div>
+                                <div class="text-slate-800 dark:text-slate-200 medical-content text-xs sm:text-sm">
+                                    {{ record.prescription|safe }}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Pagination -->
+                {% if page_obj.has_other_pages %}
+                <div class="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs">
+                    <div class="text-slate-500">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </div>
+                    <div class="flex gap-2">
+                        {% if page_obj.has_previous %}
+                        <a href="?patient_id={{ patient.id }}&page={{ page_obj.previous_page_number }}" class="px-3 py-1.5 rounded-xl border bg-white dark:bg-slate-800">Previous</a>
+                        {% endif %}
+                        {% if page_obj.has_next %}
+                        <a href="?patient_id={{ patient.id }}&page={{ page_obj.next_page_number }}" class="px-3 py-1.5 rounded-xl border bg-white dark:bg-slate-800">Next</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% else %}
+                <div class="p-12 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-center">
+                    <div class="w-16 h-16 mx-auto mb-3 rounded-2xl bg-sky-50 dark:bg-sky-950/60 flex items-center justify-center text-sky-500 text-2xl">
+                        <i class="far fa-folder-open"></i>
+                    </div>
+                    <h4 class="text-base font-bold text-slate-800 dark:text-slate-200">No Medical Records Yet</h4>
+                    <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">This patient does not have any recorded consultations or prescriptions.</p>
+                    <a href="{% url 'add_medical_record' %}?patient_id={{ patient.id }}" class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold">
+                        <i class="fas fa-plus"></i> Add First Consultation Record
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Delete Patient Modal -->
+            <div id="deleteModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+                <div class="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-2xl text-center">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center text-2xl">
+                        <i class="fas fa-triangle-exclamation"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Delete Patient Record?</h3>
+                    <p class="text-xs text-slate-500 mt-2">
+                        Are you sure you want to delete <strong>{{ patient.name }}</strong>? This action will permanently remove their records, prescriptions, and appointments.
+                    </p>
+                    <div class="mt-6 flex items-center justify-center gap-3">
+                        <button type="button" onclick="closeDeleteModal()" class="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100">
+                            Cancel
+                        </button>
+                        <a href="{% url 'delete_patient' %}?patient_id={{ patient.id }}" class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-md shadow-rose-600/20">
+                            Yes, Delete
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delete Record Modal -->
+            <div id="deleteRecordModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+                <div class="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-2xl text-center">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center text-2xl">
+                        <i class="fas fa-trash-can"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Delete Consultation Record?</h3>
+                    <p class="text-xs text-slate-500 mt-2">
+                        This action will remove the medical diagnosis and prescription permanently.
+                    </p>
+                    <form id="deleteRecordForm" method="post" class="mt-6 flex items-center justify-center gap-3">
+                        {% csrf_token %}
+                        <button type="button" onclick="closeDeleteRecordModal()" class="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-md shadow-rose-600/20">
+                            Yes, Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            {% endwith %}
+            {% endif %}
+        </main>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const headerMount = document.getElementById('react-top-header');
+        if (headerMount && (window.CmsTopHeader || window.ImhotepTopHeader)) {
+            window.mountReactComponent((window.CmsTopHeader || window.ImhotepTopHeader), headerMount, {
+                user: {
+                    first_name: "{{ user.first_name|escapejs }}",
+                    last_name: "{{ user.last_name|escapejs }}",
+                    is_doctor: {{ user.is_doctor|yesno:"true,false" }}
+                },
+                isDemo: {{ user.is_demo|yesno:"true,false" }}
+            });
+        }
+    });
+
+    function openDeleteModal() {
+        document.getElementById('deleteModal').classList.remove('hidden');
+    }
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.add('hidden');
+    }
+    function openDeleteRecordModal(recordId) {
+        document.getElementById('deleteRecordModal').classList.remove('hidden');
+        document.getElementById('deleteRecordForm').action = "{% url 'delete_medical_record' %}?medical_record_id=" + recordId;
+    }
+    function closeDeleteRecordModal() {
+        document.getElementById('deleteRecordModal').classList.add('hidden');
+    }
+</script>
+{% endblock %}

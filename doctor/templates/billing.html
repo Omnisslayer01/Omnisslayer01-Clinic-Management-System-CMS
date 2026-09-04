@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static i18n %}
+
+{% block title %}Billing & Invoices - CMS{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex bg-slate-50 dark:bg-slate-950 font-sans transition-colors duration-200">
+  {% include 'doctor/nav.html' %}
+
+  <main class="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
+    <div id="topHeaderRoot"></div>
+
+    <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar">
+      
+      <!-- Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+            <h1 class="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              Patient Billing & Invoices
+            </h1>
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+              Payment Gateway
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Consultation fee reconciliation · Digital invoices · Card, Cash, & Insurance co-pays
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <button 
+            type="button" 
+            onclick="(window.CmsToasts || window.ImhotepToasts) && (window.CmsToasts || window.ImhotepToasts).notify('New invoice generated.', 'success')"
+            class="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-500/20 flex items-center gap-2"
+          >
+            <i class="fas fa-receipt text-xs"></i>
+            <span>Create Invoice</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Financial Metrics -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center text-lg font-bold">
+            <i class="fas fa-dollar-sign"></i>
+          </div>
+          <div>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase">Settled Revenue</p>
+            <h3 class="text-xl font-black text-slate-900 dark:text-white">${{ total_revenue }}</h3>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950 text-sky-600 flex items-center justify-center text-lg font-bold">
+            <i class="fas fa-credit-card"></i>
+          </div>
+          <div>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase">Payment Modes</p>
+            <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Card / Cash / Insurance</h3>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 flex items-center justify-center text-lg font-bold">
+            <i class="fas fa-file-invoice"></i>
+          </div>
+          <div>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase">Invoices Issued</p>
+            <h3 class="text-xl font-black text-slate-900 dark:text-white">{{ invoices|length }} Total</h3>
+          </div>
+        </div>
+      </div>
+
+      <!-- Invoices Table -->
+      <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+          <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+            <i class="fas fa-file-invoice-dollar text-emerald-500"></i>
+            <span>Clinical Invoices & Receipts</span>
+          </h3>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-slate-200 dark:border-slate-700/80 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <th class="py-3 px-4">Invoice #</th>
+                <th class="py-3 px-4">Date</th>
+                <th class="py-3 px-4">Patient</th>
+                <th class="py-3 px-4">Services / Items</th>
+                <th class="py-3 px-4">Method</th>
+                <th class="py-3 px-4">Total Amount</th>
+                <th class="py-3 px-4">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+              {% for inv in invoices %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                  <td class="py-3 px-4 font-mono font-bold text-slate-500">#{{ inv.invoice_id|slice:":8" }}</td>
+                  <td class="py-3 px-4 text-slate-500">{{ inv.created_at|date:"M d, Y" }}</td>
+                  <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">{{ inv.patient.name }}</td>
+                  <td class="py-3 px-4 text-slate-600 dark:text-slate-300">{{ inv.items_summary }}</td>
+                  <td class="py-3 px-4">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                      {{ inv.payment_method }}
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 font-mono font-bold text-slate-900 dark:text-white">${{ inv.total_amount }}</td>
+                  <td class="py-3 px-4">
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                      {{ inv.status }}
+                    </span>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="7" class="text-center py-8 text-slate-400">No invoices on file.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.mountReactComponent && window.TopHeader) {
+      window.mountReactComponent(window.TopHeader, 'topHeaderRoot', {
+        doctorName: "{{ doctor.user.get_full_name|default:'Dr. Zamil' }}",
+        specialization: "{{ doctor.specialization|default:'Lead Clinical Practitioner' }}"
+      });
+    }
+  });
+</script>
+{% endblock %}

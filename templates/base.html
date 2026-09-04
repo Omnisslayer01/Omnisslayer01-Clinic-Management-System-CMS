@@ -1,0 +1,180 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <!-- Primary Meta Tags -->
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>{% block title %}CMS - Clinic Management System{% endblock %}</title>
+        <meta name="description" content="{% block meta_description %}CMS provides quality healthcare services with modern technology. Schedule appointments, access medical records, and connect with healthcare providers.{% endblock %}">
+        <meta name="keywords" content="healthcare, medical clinic, doctor appointments, patient care, medical services, cms, clinic management system">
+        <meta name="author" content="CMS">
+        
+        <!-- Canonical URL -->
+        <link rel="canonical" href="{{ request.build_absolute_uri }}">
+        
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="{{ request.build_absolute_uri }}">
+        <meta property="og:title" content="{% block og_title %}CMS - Clinic Management System{% endblock %}">
+        <meta property="og:description" content="{% block og_description %}CMS provides quality healthcare services with modern technology. Schedule appointments, access medical records, and connect with healthcare providers.{% endblock %}">
+        <meta property="og:image" content="{% block og_image %}{% static 'cms_logo.png' %}{% endblock %}">
+        
+        <!-- Twitter -->
+        <meta property="twitter:card" content="summary_large_image">
+        <meta property="twitter:url" content="{{ request.build_absolute_uri }}">
+        <meta property="twitter:title" content="{% block twitter_title %}CMS - Clinic Management System{% endblock %}">
+        <meta property="twitter:description" content="{% block twitter_description %}CMS provides quality healthcare services with modern technology. Schedule appointments, access medical records, and connect with healthcare providers.{% endblock %}">
+        <meta property="twitter:image" content="{% block twitter_image %}{% static 'cms_logo.png' %}{% endblock %}">
+        
+        <!-- Favicon and App Icons -->
+        <link rel="shortcut icon" type="image/png" href="{% static 'cms_logo.png' %}">
+        <link rel="apple-touch-icon" sizes="180x180" href="{% static 'cms_logo.png' %}">
+        <link rel="icon" type="image/png" sizes="32x32" href="{% static 'cms_logo.png' %}">
+        <link rel="manifest" href="{% static 'manifest.json' %}">
+
+        <!-- Add PWA meta tags -->
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black">
+        <meta name="apple-mobile-web-app-title" content="CMS">
+        <link rel="apple-touch-icon" href="{% static 'cms_logo.png' %}">
+        <meta name="theme-color" content="#007bff">
+        
+        <meta name="google-site-verification" content="t0C7WT8MTJ1gP87eh4Y7U9bkqPxRAnm1JxYLnDix6_Y" />
+
+        <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+        <!-- Stylesheets -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script>
+            tailwind.config = {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
+                        },
+                        colors: {
+                            primary: {
+                                50: '#f0f9ff',
+                                100: '#e0f2fe',
+                                500: '#0284c7',
+                                600: '#0369a1',
+                                700: '#075985'
+                            },
+                            sky: {
+                                50: '#f0f9ff',
+                                100: '#e0f2fe',
+                                200: '#bae6fd',
+                                300: '#7dd3fc',
+                                400: '#38bdf8',
+                                500: '#0ea5e9',
+                                600: '#0284c7',
+                                700: '#0369a1',
+                                800: '#075985',
+                                900: '#0c4a6e',
+                                950: '#082f49',
+                            }
+                        }
+                    }
+                }
+            }
+        </script>
+        <link rel="stylesheet" href="{% static 'styles.css' %}">
+        <link rel="stylesheet" href="{% static 'css/loader.css' %}">
+        
+        <!-- React 18 & HTM Engine -->
+        <script src="{% static 'js/vendor/react.min.js' %}"></script>
+        <script src="{% static 'js/vendor/react-dom.min.js' %}"></script>
+        <script src="{% static 'js/vendor/htm.min.js' %}"></script>
+        <script src="{% static 'js/react/core.js' %}"></script>
+        <script src="{% static 'js/react/components/ToastContainer.js' %}"></script>
+        <script src="{% static 'js/react/components/TopHeader.js' %}"></script>
+        <script src="{% static 'js/react/components/DashboardWidgets.js' %}"></script>
+        <script src="{% static 'js/react/components/PatientExplorer.js' %}"></script>
+        <script src="{% static 'js/react/components/SharePrescriptionModal.js' %}"></script>
+        <script src="{% static 'js/react/components/LandingWidgets.js' %}"></script>
+        <script src="{% static 'js/react/components/AiBookingModal.js' %}"></script>
+        <script src="{% static 'js/react/components/AmbientScribeModal.js' %}"></script>
+        
+        <!-- Preload critical resources -->
+        <link rel="preconnect" href="https://cdn.tailwindcss.com">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+        
+        <!-- Structured Data - Organization -->
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "MedicalOrganization",
+          "name": "CMS",
+          "url": "{{ request.build_absolute_uri }}",
+          "logo": "{% static 'cms_logo.png' %}",
+          "description": "A modern clinic management system providing quality healthcare services."
+        }
+        </script>
+        
+        {% block extra_head %}{% endblock %}
+        
+        <script>
+            if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        </script>
+    </head>
+<body class="bg-gray-100 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-200">
+  <div id="page-loader" aria-hidden="true">
+    <div class="spinner" role="status" aria-label="Loading"></div>
+  </div>
+    <div class="flex min-h-screen">
+        
+        <!-- Main Content -->
+        <div id="content" class="content-wrapper flex-1">
+            
+            <!-- Toast Notifications Container -->
+            <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col space-y-3 max-w-md w-full px-4 pointer-events-none"></div>
+
+            {% if messages %}
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        {% for message in messages %}
+                            if (typeof window.showNotification === 'function') {
+                                window.showNotification("{{ message|escapejs }}", "{{ message.tags|default:'info' }}", 10000);
+                            }
+                        {% endfor %}
+                    });
+                </script>
+            {% endif %}
+
+            <!-- Page content -->
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- Add main.js at the end of body for better performance -->
+    <script src="{% static 'main.js' %}"></script>
+    <script src="{% static 'js/loader.js' %}"></script>
+    
+    <!-- ServiceWorker registration script -->
+    <script>
+        // Register ServiceWorker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/static/service-worker.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    }, function(err) {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+    
+    {% include 'footer.html' %}
+</body>
+</html>

@@ -1,0 +1,318 @@
+{% load static i18n %}
+<script>
+  function handleSidebarToggle() {
+    const sidebar = document.getElementById('sideNav');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (!sidebar || !overlay) return;
+    
+    if (sidebar.classList.contains('-translate-x-full')) {
+      sidebar.classList.remove('-translate-x-full');
+      overlay.classList.remove('hidden');
+    } else {
+      sidebar.classList.add('-translate-x-full');
+      overlay.classList.add('hidden');
+    }
+  }
+  window.handleSidebarToggle = handleSidebarToggle;
+</script>
+
+<!-- Desktop Sidebar (CMS Clinic Style) -->
+<aside class="sticky top-0 h-screen w-64 hidden lg:flex flex-col justify-between shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-sm z-30 transition-colors duration-200 font-sans">
+  <div class="flex-1 overflow-y-auto px-3.5 py-5 custom-scrollbar">
+    
+    <!-- Brand Header -->
+    <a href="{% if request.user.is_doctor %}{% url 'doctor_dashboard' %}{% else %}{% url 'assistant_dashboard' %}{% endif %}" class="flex items-center gap-3 px-2 mb-5 group">
+      <div class="w-9 h-9 rounded-xl overflow-hidden bg-sky-600 text-white flex items-center justify-center font-black text-lg shadow-sm shadow-sky-500/20 group-hover:scale-105 transition-transform">
+        <img src="{% static 'cms_logo.png' %}" alt="CMS Logo" class="w-full h-full object-cover">
+      </div>
+      <div>
+        <h1 class="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
+          CMS
+        </h1>
+        <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Clinic Management System</p>
+      </div>
+    </a>
+
+    <!-- User Profile (e.g. Zamil / Doctor) -->
+    <div class="p-2.5 mb-5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60">
+      <div class="flex items-center gap-2.5">
+        <div class="relative">
+          <div class="w-8 h-8 rounded-lg bg-sky-100 dark:bg-sky-950/80 text-sky-700 dark:text-sky-300 font-bold flex items-center justify-center text-xs border border-sky-200 dark:border-sky-800">
+            {{ user.first_name|default:"Z"|make_list|first|upper }}
+          </div>
+          <span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 border border-white dark:border-slate-900"></span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-bold text-slate-900 dark:text-white truncate">
+            {% if user.first_name %}Dr. {{ user.first_name }} {{ user.last_name }}{% else %}Dr. Zamil{% endif %}
+          </p>
+          <p class="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+            {{ user.doctor_profile.specialization|default:"Lead Practitioner" }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Voice Agent & Scribe Quick Launcher -->
+    <div class="mb-4 px-1">
+      <button 
+        type="button" 
+        onclick="window.openAiBookingModal ? window.openAiBookingModal() : (window.location.href='{% url 'medcare_calendar' %}#ai-bot')"
+        class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 shadow-md shadow-sky-500/20 transition-all transform active:scale-95 group"
+      >
+        <span class="flex items-center gap-2">
+          <i class="fas fa-microphone-lines text-xs text-sky-200 group-hover:animate-pulse"></i>
+          <span>AI Booking Agent</span>
+        </span>
+        <span class="text-[9px] px-1.5 py-0.5 rounded bg-white/20 uppercase tracking-widest font-mono">LIVE</span>
+      </button>
+    </div>
+
+    <!-- CATEGORY 1: APPLICATION -->
+    <div class="space-y-0.5">
+      <div class="px-2 pt-2 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+        Application
+      </div>
+
+      <!-- Dashboard -->
+      <a href="{% if request.user.is_doctor %}{% url 'doctor_dashboard' %}{% else %}{% url 'assistant_dashboard' %}{% endif %}" 
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name in 'doctor_dashboard assistant_dashboard' or active_menu == 'dashboard' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <i class="fas fa-table-columns text-xs w-4 text-center {% if request.resolver_match.url_name in 'doctor_dashboard assistant_dashboard' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+        <span>Dashboard</span>
+      </a>
+
+      <!-- Patients -->
+      <a href="{% url 'show_patients' %}" 
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'show_patients' or active_menu == 'patients' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <i class="fas fa-users text-xs w-4 text-center {% if request.resolver_match.url_name == 'show_patients' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+        <span>Patients</span>
+      </a>
+
+      <!-- Calendar (Highlighted in user reference) -->
+      <a href="{% url 'medcare_calendar' %}" 
+         class="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'medcare_calendar' or active_menu == 'calendar' %}bg-sky-600 text-white font-bold shadow-sm shadow-sky-500/25{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <span class="flex items-center gap-2.5">
+          <i class="fas fa-calendar-days text-xs w-4 text-center {% if request.resolver_match.url_name == 'medcare_calendar' or active_menu == 'calendar' %}text-white{% else %}text-slate-400{% endif %}"></i>
+          <span>Calendar</span>
+        </span>
+        {% if request.resolver_match.url_name == 'medcare_calendar' or active_menu == 'calendar' %}
+          <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+        {% endif %}
+      </a>
+
+      <!-- Inventory -->
+      <a href="{% url 'medcare_inventory' %}" 
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'medcare_inventory' or active_menu == 'inventory' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <i class="fas fa-boxes-stacked text-xs w-4 text-center {% if active_menu == 'inventory' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+        <span>Inventory</span>
+      </a>
+
+      <!-- Queue (Live Tokens) -->
+      <a href="{% url 'medcare_queue' %}" 
+         class="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'medcare_queue' or active_menu == 'queue' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <span class="flex items-center gap-2.5">
+          <i class="fas fa-person-walking-arrow-right text-xs w-4 text-center {% if active_menu == 'queue' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+          <span>Queue</span>
+        </span>
+        <span class="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">LIVE</span>
+      </a>
+
+      <!-- Waitlist -->
+      <a href="{% url 'medcare_waitlist' %}" 
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'medcare_waitlist' or active_menu == 'waitlist' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <i class="fas fa-hourglass-half text-xs w-4 text-center {% if active_menu == 'waitlist' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+        <span>Waitlist</span>
+      </a>
+
+      <!-- Referrals -->
+      <a href="{% url 'medcare_referrals' %}" 
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'medcare_referrals' or active_menu == 'referrals' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <i class="fas fa-user-doctor text-xs w-4 text-center {% if active_menu == 'referrals' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+        <span>Referrals</span>
+      </a>
+
+      <!-- Claims -->
+      <a href="{% url 'medcare_claims' %}" 
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'medcare_claims' or active_menu == 'claims' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <i class="fas fa-shield-heart text-xs w-4 text-center {% if active_menu == 'claims' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+        <span>Claims</span>
+      </a>
+
+      <!-- Prescriptions -->
+      <a href="{% url 'medcare_prescriptions' %}" 
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'medcare_prescriptions' or active_menu == 'prescriptions' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <i class="fas fa-prescription text-xs w-4 text-center {% if active_menu == 'prescriptions' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+        <span>Prescriptions</span>
+      </a>
+
+      <!-- Labs Lifecycle (Hackathon Compulsory) -->
+      <a href="{% url 'medcare_labs' %}" 
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'medcare_labs' or active_menu == 'labs' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <i class="fas fa-vial-virus text-xs w-4 text-center {% if active_menu == 'labs' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+        <span>Lab Tickets</span>
+      </a>
+
+      <!-- SMS -->
+      <a href="{% url 'medcare_sms' %}" 
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'medcare_sms' or active_menu == 'sms' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <i class="fas fa-comment-sms text-xs w-4 text-center {% if active_menu == 'sms' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+        <span>SMS Dispatch</span>
+      </a>
+
+      <!-- Reports -->
+      <a href="{% url 'medcare_reports' %}" 
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'medcare_reports' or active_menu == 'reports' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <i class="fas fa-chart-simple text-xs w-4 text-center {% if active_menu == 'reports' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+        <span>Reports</span>
+      </a>
+
+      <!-- Labels -->
+      <a href="{% url 'medcare_labels' %}" 
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'medcare_labels' or active_menu == 'labels' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <i class="fas fa-tags text-xs w-4 text-center {% if active_menu == 'labels' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+        <span>Labels</span>
+      </a>
+
+      <!-- Leads -->
+      <a href="{% url 'medcare_leads' %}" 
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'medcare_leads' or active_menu == 'leads' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <i class="fas fa-bullseye text-xs w-4 text-center {% if active_menu == 'leads' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+        <span>Leads</span>
+      </a>
+    </div>
+
+    <!-- CATEGORY 2: SETTINGS -->
+    <div class="pt-4 space-y-0.5">
+      <div class="px-2 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+        Settings
+      </div>
+
+      <!-- General -->
+      <a href="{% url 'update_doctor_profile' %}" 
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'update_doctor_profile' or active_menu == 'general' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <i class="fas fa-gear text-xs w-4 text-center {% if active_menu == 'general' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+        <span>General</span>
+      </a>
+
+      <!-- Members -->
+      <a href="{% url 'add_assistant' %}" 
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'add_assistant' or active_menu == 'members' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <i class="fas fa-user-plus text-xs w-4 text-center {% if active_menu == 'members' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+        <span>Members</span>
+      </a>
+
+      <!-- Locations -->
+      <a href="{% url 'medcare_locations' %}" 
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'medcare_locations' or active_menu == 'locations' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <i class="fas fa-location-dot text-xs w-4 text-center {% if active_menu == 'locations' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+        <span>Locations</span>
+      </a>
+
+      <!-- Billing -->
+      <a href="{% url 'medcare_billing' %}" 
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'medcare_billing' or active_menu == 'billing' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <i class="fas fa-file-invoice-dollar text-xs w-4 text-center {% if active_menu == 'billing' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+        <span>Billing</span>
+      </a>
+
+      <!-- Audit Log -->
+      <a href="{% url 'medcare_audit_log' %}" 
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors {% if request.resolver_match.url_name == 'medcare_audit_log' or active_menu == 'audit_log' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-semibold border border-sky-200/50 dark:border-sky-800/50{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <i class="fas fa-fingerprint text-xs w-4 text-center {% if active_menu == 'audit_log' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+        <span>Audit Log</span>
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Bottom Panel: Theme Toggle & Sign Out -->
+  <div class="p-3 border-t border-slate-200 dark:border-slate-800 space-y-1 bg-slate-50/50 dark:bg-slate-900/50">
+    <button 
+      type="button" 
+      onclick="(window.CmsTheme || window.ImhotepTheme) ? (window.CmsTheme || window.ImhotepTheme).toggle() : null"
+      class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+    >
+      <span class="flex items-center gap-2">
+        <i class="fas fa-circle-half-stroke text-sky-500 text-xs"></i>
+        <span>Appearance</span>
+      </span>
+      <span class="text-[9px] uppercase font-bold text-slate-400">Dark / Light</span>
+    </button>
+
+    <a href="{% url 'logout' %}" 
+       class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors">
+      <i class="fas fa-arrow-right-from-bracket text-xs"></i>
+      <span>Sign Out</span>
+    </a>
+  </div>
+</aside>
+
+<!-- Mobile Navigation Drawer -->
+<div class="fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto transition duration-300 transform bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-2xl -translate-x-full lg:hidden flex flex-col justify-between" id="sideNav">
+  <div class="p-4">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+      <a href="{% if request.user.is_doctor %}{% url 'doctor_dashboard' %}{% else %}{% url 'assistant_dashboard' %}{% endif %}" class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg overflow-hidden bg-sky-600 text-white flex items-center justify-center font-bold shadow-sm">
+          <img src="{% static 'cms_logo.png' %}" alt="CMS Logo" class="w-full h-full object-cover">
+        </div>
+        <div>
+          <span class="text-xs font-bold text-slate-900 dark:text-white">CMS</span>
+          <p class="text-[9px] text-slate-400">Clinic Management System</p>
+        </div>
+      </a>
+      <button class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" onclick="handleSidebarToggle()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Mobile Nav Links -->
+    <nav class="space-y-1 mt-3 text-xs">
+      <div class="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase">Application</div>
+      <a href="{% url 'doctor_dashboard' %}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <i class="fas fa-table-columns w-4 text-sky-500"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="{% url 'show_patients' %}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <i class="fas fa-users w-4 text-sky-500"></i>
+        <span>Patients</span>
+      </a>
+      <a href="{% url 'medcare_calendar' %}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-sky-600 text-white font-bold">
+        <i class="fas fa-calendar-days w-4"></i>
+        <span>Calendar</span>
+      </a>
+      <a href="{% url 'medcare_queue' %}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <i class="fas fa-person-walking-arrow-right w-4 text-amber-500"></i>
+        <span>Queue</span>
+      </a>
+      <a href="{% url 'medcare_waitlist' %}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <i class="fas fa-hourglass-half w-4 text-sky-500"></i>
+        <span>Waitlist</span>
+      </a>
+      <a href="{% url 'medcare_prescriptions' %}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <i class="fas fa-prescription w-4 text-sky-500"></i>
+        <span>Prescriptions</span>
+      </a>
+      <a href="{% url 'medcare_inventory' %}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <i class="fas fa-boxes-stacked w-4 text-sky-500"></i>
+        <span>Inventory</span>
+      </a>
+      <a href="{% url 'medcare_labs' %}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <i class="fas fa-vial-virus w-4 text-sky-500"></i>
+        <span>Lab Tickets</span>
+      </a>
+      <a href="{% url 'medcare_billing' %}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+        <i class="fas fa-file-invoice-dollar w-4 text-sky-500"></i>
+        <span>Billing</span>
+      </a>
+    </nav>
+  </div>
+
+  <div class="p-4 border-t border-slate-200 dark:border-slate-800">
+    <a href="{% url 'logout' %}" class="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-rose-600">
+      <i class="fas fa-arrow-right-from-bracket"></i>
+      <span>Sign Out</span>
+    </a>
+  </div>
+</div>
+
+<div class="fixed inset-0 z-40 hidden bg-slate-900/60 backdrop-blur-sm transition-opacity" id="sidebarOverlay" onclick="handleSidebarToggle()"></div>

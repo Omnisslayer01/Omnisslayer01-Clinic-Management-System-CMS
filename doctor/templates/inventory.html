@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load static i18n %}
+
+{% block title %}Inventory & Pharmacy Stock - CMS{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex bg-slate-50 dark:bg-slate-950 font-sans transition-colors duration-200">
+  {% include 'doctor/nav.html' %}
+
+  <main class="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
+    <div id="topHeaderRoot"></div>
+
+    <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar">
+      
+      <!-- Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <span class="w-3 h-3 rounded-full bg-sky-500"></span>
+            <h1 class="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              Clinic Pharmacy & Inventory
+            </h1>
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300">
+              Stock Control
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Medication supplies · Consumables · Automated reorder threshold triggers
+          </p>
+        </div>
+      </div>
+
+      <!-- Inventory KPIs -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950 text-sky-600 flex items-center justify-center text-lg">
+            <i class="fas fa-boxes-stacked"></i>
+          </div>
+          <div>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase">Total Items (SKUs)</p>
+            <h3 class="text-lg font-black text-slate-900 dark:text-white">{{ total_sku_count }} Products</h3>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950 text-rose-600 flex items-center justify-center text-lg">
+            <i class="fas fa-triangle-exclamation"></i>
+          </div>
+          <div>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase">Low Stock Alerts</p>
+            <h3 class="text-lg font-black text-rose-600 dark:text-rose-400">{{ low_stock_count }} Items Low</h3>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center text-lg">
+            <i class="fas fa-truck-ramp-box"></i>
+          </div>
+          <div>
+            <p class="text-[11px] font-semibold text-slate-400 uppercase">Supplier Status</p>
+            <h3 class="text-lg font-black text-slate-900 dark:text-white">Active (PharmaDirect)</h3>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inventory Table -->
+      <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+          <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+            <i class="fas fa-clipboard-list text-sky-500"></i>
+            <span>Stock Items & Supplies</span>
+          </h3>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-slate-200 dark:border-slate-700/80 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <th class="py-3 px-4">Item Name</th>
+                <th class="py-3 px-4">Category</th>
+                <th class="py-3 px-4">Available Stock</th>
+                <th class="py-3 px-4">Unit Price</th>
+                <th class="py-3 px-4">Reorder Level</th>
+                <th class="py-3 px-4">Status</th>
+                <th class="py-3 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+              {% for i in items %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                  <td class="py-3 px-4">
+                    <p class="font-bold text-slate-900 dark:text-white">{{ i.name }}</p>
+                    <p class="text-[10px] text-slate-400">Supplier: {{ i.supplier }}</p>
+                  </td>
+                  <td class="py-3 px-4">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                      {{ i.category }}
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">
+                    {{ i.stock_quantity }} {{ i.unit }}
+                  </td>
+                  <td class="py-3 px-4 font-mono font-bold text-slate-600 dark:text-slate-400">
+                    ${{ i.unit_price }}
+                  </td>
+                  <td class="py-3 px-4 text-slate-500">
+                    {{ i.reorder_level }} {{ i.unit }}
+                  </td>
+                  <td class="py-3 px-4">
+                    {% if i.stock_quantity <= i.reorder_level %}
+                      <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                        Low Stock
+                      </span>
+                    {% else %}
+                      <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                        Healthy
+                      </span>
+                    {% endif %}
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <button 
+                      type="button" 
+                      onclick="(window.CmsToasts || window.ImhotepToasts) && (window.CmsToasts || window.ImhotepToasts).notify('Reorder PO created for {{ i.name|escapejs }}', 'success')" 
+                      class="px-3 py-1 rounded-lg bg-slate-100 hover:bg-sky-50 dark:bg-slate-800 dark:hover:bg-sky-950 text-sky-600 font-bold text-xs"
+                    >
+                      Reorder
+                    </button>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="7" class="text-center py-8 text-slate-400">
+                    No inventory items added yet.
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.mountReactComponent && window.TopHeader) {
+      window.mountReactComponent(window.TopHeader, 'topHeaderRoot', {
+        doctorName: "{{ doctor.user.get_full_name|default:'Dr. Zamil' }}",
+        specialization: "{{ doctor.specialization|default:'Lead Clinical Practitioner' }}"
+      });
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}Assistant Dashboard - CMS{% endblock %}
+
+{% block content %}
+<div class="flex min-h-screen bg-slate-50 dark:bg-slate-950 font-sans transition-colors duration-200">
+    <!-- Include navigation -->
+    {% include "nav.html" %}
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        <!-- React Top Header Mount -->
+        <div id="react-top-header" class="sticky top-0 z-20"></div>
+
+        <main class="flex-1 p-4 md:p-8 space-y-6 max-w-7xl w-full mx-auto">
+            <!-- Welcome Hero Banner -->
+            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-sky-600 to-blue-700 text-white p-6 md:p-8 shadow-xl shadow-sky-900/10">
+                <div class="absolute -right-12 -top-12 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+                <div class="absolute right-1/4 -bottom-16 w-48 h-48 bg-sky-400/20 rounded-full blur-xl pointer-events-none"></div>
+                
+                <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <div class="space-y-2">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-xs font-semibold tracking-wide border border-white/20">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span>Assistant Workspace</span>
+                        </div>
+                        <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">
+                            Welcome, {{ user_data.get_full_name|default:user.username }}
+                        </h1>
+                        <p class="text-sky-100 text-sm md:text-base max-w-xl font-normal">
+                            Working with <span class="font-bold text-white">Dr. {{ doctor_profile.user.get_full_name }}</span>. You have access to patient intake and appointment scheduling workflows.
+                        </p>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <a href="{% url 'appointment_list' %}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-slate-900 font-semibold text-xs shadow-md hover:bg-sky-50 transition-all transform hover:-translate-y-0.5">
+                            <i class="fas fa-calendar-plus text-sky-600"></i>
+                            <span>New Appointment</span>
+                        </a>
+                        <a href="{% url 'show_patients' %}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/20 backdrop-blur-md border border-white/30 text-white font-semibold text-xs hover:bg-white/30 transition-all">
+                            <i class="fas fa-search"></i>
+                            <span>Find Patient</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Action Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <a href="{% url 'appointment_list' %}" class="group block p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md card-hover transition-all">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 rounded-2xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center text-lg border border-sky-100 dark:border-sky-900/50 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <span class="text-xs font-bold text-slate-400 dark:text-slate-500 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                            <i class="fas fa-arrow-right"></i>
+                        </span>
+                    </div>
+                    <h2 class="text-base font-bold text-slate-900 dark:text-white mb-1 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                        {% trans "Manage Appointments" %}
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        {% trans "View, schedule, and coordinate clinic bookings and patient visits" %}
+                    </p>
+                </a>
+
+                <a href="{% url 'show_patients' %}" class="group block p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md card-hover transition-all">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg border border-emerald-100 dark:border-emerald-900/50 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-hospital-user"></i>
+                        </div>
+                        <span class="text-xs font-bold text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                            <i class="fas fa-arrow-right"></i>
+                        </span>
+                    </div>
+                    <h2 class="text-base font-bold text-slate-900 dark:text-white mb-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                        {% trans "Patient Directory" %}
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        {% trans "Access patient basic records, contact details, and history" %}
+                    </p>
+                </a>
+
+                <a href="{% url 'update_assistant_profile' %}" class="group block p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md card-hover transition-all">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center text-lg border border-purple-100 dark:border-purple-900/50 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-user-gear"></i>
+                        </div>
+                        <span class="text-xs font-bold text-slate-400 dark:text-slate-500 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                            <i class="fas fa-arrow-right"></i>
+                        </span>
+                    </div>
+                    <h2 class="text-base font-bold text-slate-900 dark:text-white mb-1 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                        {% trans "My Profile Settings" %}
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        {% trans "Update your account details, security settings, and password" %}
+                    </p>
+                </a>
+            </div>
+
+            <!-- Role Guidelines Bento -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <!-- Allowed Actions -->
+                <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-sm border border-emerald-100 dark:border-emerald-900/50">
+                            <i class="fas fa-circle-check"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-white">{% trans "Your Active Capabilities" %}</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Authorized actions for your assistant role</p>
+                        </div>
+                    </div>
+                    <ul class="space-y-2.5 text-xs text-slate-600 dark:text-slate-400">
+                        <li class="flex items-center gap-2.5">
+                            <i class="fas fa-check text-emerald-500 text-xs"></i>
+                            <span>Schedule, reschedule, and manage clinic appointments</span>
+                        </li>
+                        <li class="flex items-center gap-2.5">
+                            <i class="fas fa-check text-emerald-500 text-xs"></i>
+                            <span>Create and register new patient files</span>
+                        </li>
+                        <li class="flex items-center gap-2.5">
+                            <i class="fas fa-check text-emerald-500 text-xs"></i>
+                            <span>Update patient contact information and basic demographics</span>
+                        </li>
+                        <li class="flex items-center gap-2.5">
+                            <i class="fas fa-check text-emerald-500 text-xs"></i>
+                            <span>View real-time calendar and availability slots</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Limitations -->
+                <div class="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm border border-amber-100 dark:border-amber-900/50">
+                            <i class="fas fa-shield-halved"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-white">{% trans "Clinical Privacy Safeguards" %}</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Protected medical data boundaries</p>
+                        </div>
+                    </div>
+                    <ul class="space-y-2.5 text-xs text-slate-600 dark:text-slate-400">
+                        <li class="flex items-center gap-2.5">
+                            <i class="fas fa-lock text-amber-500 text-xs"></i>
+                            <span>Medical diagnosis and doctor clinical notes are restricted</span>
+                        </li>
+                        <li class="flex items-center gap-2.5">
+                            <i class="fas fa-lock text-amber-500 text-xs"></i>
+                            <span>Cannot create or alter prescription entries</span>
+                        </li>
+                        <li class="flex items-center gap-2.5">
+                            <i class="fas fa-lock text-amber-500 text-xs"></i>
+                            <span>Cannot delete patient profiles or permanent medical history</span>
+                        </li>
+                        <li class="flex items-center gap-2.5">
+                            <i class="fas fa-lock text-amber-500 text-xs"></i>
+                            <span>Doctor working hours and clinic schedule settings are read-only</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.mountReactComponent && (window.CmsTopHeader || window.ImhotepTopHeader)) {
+        window.mountReactComponent((window.CmsTopHeader || window.ImhotepTopHeader), 'react-top-header', {
+            title: 'Assistant Workspace',
+            subtitle: 'Dr. {{ doctor_profile.user.get_full_name|escapejs }} Clinic',
+            userName: '{{ user.first_name|default:user.username|escapejs }}',
+            userRole: 'Assistant'
+        });
+    }
+});
+</script>
+{% endblock %}

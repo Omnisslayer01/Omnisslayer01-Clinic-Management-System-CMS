@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load static %}
+{% load socialaccount %}
+
+{% block title %}Sign In - CMS{% endblock %}
+
+{% block content %}
+<section class="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden transition-colors duration-200">
+    <!-- Ambient glowing backgrounds -->
+    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-sky-500/10 dark:bg-sky-500/20 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute bottom-10 right-10 w-72 h-72 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center mb-8">
+        <a href="{% url 'landing_page' %}" class="inline-flex items-center gap-3 group mb-4">
+            <div class="p-2.5 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-xl shadow-sky-500/25 group-hover:scale-105 transition-transform duration-200 overflow-hidden">
+                <img src="{% static 'cms_logo.png' %}" alt="CMS Logo" class="w-9 h-9 object-contain rounded-xl">
+            </div>
+            <span class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                CMS
+            </span>
+        </a>
+        <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            {% trans "Welcome to your Clinical Portal" %}
+        </h2>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {% trans "Sign in with your credentials or test with an instant demo account." %}
+        </p>
+    </div>
+
+    <div class="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        <div class="rounded-3xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border border-slate-200/80 dark:border-slate-800 p-8 shadow-2xl">
+            <!-- Google OAuth Button -->
+            <div>
+                <a href="{% url 'google_login' %}" class="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-all shadow-sm">
+                    <svg class="w-4 h-4" viewBox="0 0 48 48">
+                        <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12 c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24 c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
+                        <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657 C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
+                        <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36 c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
+                        <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571 c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
+                    </svg>
+                    <span>Sign in with Google</span>
+                </a>
+            </div>
+
+            <!-- Divider -->
+            <div class="my-6 relative">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-slate-200 dark:border-slate-800"></div>
+                </div>
+                <div class="relative flex justify-center text-[11px] font-bold uppercase tracking-wider">
+                    <span class="px-3 bg-white dark:bg-slate-900 text-slate-400">{% trans "Or with email / username" %}</span>
+                </div>
+            </div>
+
+            <!-- Server Messages Alert Banner -->
+            {% if messages %}
+                <div class="mb-4 space-y-2">
+                    {% for message in messages %}
+                        <div class="p-3 rounded-xl text-xs font-medium flex items-start gap-2.5 {% if message.tags == 'error' %}bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800{% elif message.tags == 'warning' %}bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800{% elif message.tags == 'success' %}bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800{% else %}bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800{% endif %}">
+                            <i class="fas mt-0.5 {% if message.tags == 'error' %}fa-exclamation-circle text-rose-500{% elif message.tags == 'warning' %}fa-exclamation-triangle text-amber-500{% elif message.tags == 'success' %}fa-check-circle text-emerald-500{% else %}fa-info-circle text-sky-500{% endif %}"></i>
+                            <span class="flex-1">{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Credentials Form -->
+            <form action="{% url 'login' %}" method="post" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label for="Email" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                        {% trans "Username or Email" %}
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <i class="fas fa-user text-xs"></i>
+                        </div>
+                        <input type="text" name="user_username_mail" id="Email" required placeholder="Doctor username or email" 
+                               class="w-full pl-10 pr-4 py-3 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label for="password" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                            {% trans "Password" %}
+                        </label>
+                        <a href="{% url 'password_reset' %}" class="text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline">
+                            {% trans "Forgot password?" %}
+                        </a>
+                    </div>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <i class="fas fa-lock text-xs"></i>
+                        </div>
+                        <input type="password" name="password" id="password" required placeholder="Enter password"
+                               class="w-full pl-10 pr-10 py-3 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        <button type="button" onclick="togglePasswordVisibility('password')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600">
+                            <i class="fas fa-eye text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full py-3 px-4 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-500 shadow-md shadow-sky-600/20 hover:shadow-lg transition-all duration-200 mt-2">
+                    {% trans "Sign In to Clinic" %}
+                </button>
+            </form>
+
+            <!-- Try Demo Account Button -->
+            <div class="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+                <a href="{% url 'demo_login' %}" class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-100 transition-all">
+                    <i class="fas fa-bolt text-amber-500"></i>
+                    <span>{% trans "Instant Live Demo Login" %}</span>
+                </a>
+            </div>
+
+            <!-- Footer Register Link -->
+            <p class="mt-6 text-center text-xs text-slate-500">
+                Don't have a practice account?
+                <a href="{% url 'register' %}" class="font-bold text-sky-600 dark:text-sky-400 hover:underline ml-1">
+                    {% trans "Register here" %}
+                </a>
+            </p>
+        </div>
+    </div>
+</section>
+{% endblock %}

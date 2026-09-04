@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}Patient Directory - CMS{% endblock %}
+
+{% block content %}
+<div class="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <!-- Sidebar Navigation -->
+    {% include "nav.html" %}
+
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- React Top Header Mount -->
+        <div id="react-top-header"></div>
+
+        <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+            <!-- Directory Header Banner -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80 dark:border-slate-800">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                        {% trans "Patient Directory" %}
+                    </h1>
+                    <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        Comprehensive registry of patient profiles, clinical histories, and appointments
+                    </p>
+                </div>
+                <div>
+                    <a href="{% url 'add_patient' %}" class="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-sky-600/20 hover:shadow-lg transition-all">
+                        <i class="fas fa-user-plus"></i>
+                        <span>{% trans "Register New Patient" %}</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- React Patient Explorer Container -->
+            <div id="react-patient-explorer"></div>
+
+            <!-- JSON Data for React Hydration -->
+            <script id="patients-data-json" type="application/json">
+                [
+                    {% for patient in page_obj %}
+                    {
+                        "id": {{ patient.id }},
+                        "name": "{{ patient.name|escapejs }}",
+                        "gender": "{{ patient.gender|default:''|escapejs }}",
+                        "phone": "{{ patient.phone_number|default:''|escapejs }}",
+                        "address": "{{ patient.address|default:''|escapejs }}",
+                        "date_of_birth": "{{ patient.date_of_birth|default:''|escapejs }}",
+                        "date_added": "{{ patient.date_added|date:'M d, Y' }}",
+                        "detail_url": "{% url 'show_patient_details' %}?patient_id={{ patient.id }}",
+                        "edit_url": "{% url 'update_patient' %}?patient_id={{ patient.id }}",
+                        "schedule_url": "{% url 'schedule_appointment' %}?patient_id={{ patient.id }}"
+                    }{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ]
+            </script>
+
+            <!-- Server Rendered Fallback Pagination (Works seamlessly with Django GET query parameters) -->
+            {% if page_obj.has_other_pages %}
+            <div class="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm text-xs mt-6">
+                <div class="text-slate-500">
+                    Showing <strong>{{ page_obj.start_index }}</strong> to <strong>{{ page_obj.end_index }}</strong> of <strong>{{ page_obj.paginator.count }}</strong> patients
+                </div>
+                <div class="flex items-center gap-1.5">
+                    {% if page_obj.has_previous %}
+                    <a href="?{% if filter_name %}patient_name={{ filter_name }}&{% elif filter_phone %}patient_phone={{ filter_phone }}&{% endif %}sort_with={{ sort_with }}&page={{ page_obj.previous_page_number }}" class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 font-medium">
+                        ← Previous
+                    </a>
+                    {% endif %}
+
+                    {% for i in page_obj.paginator.page_range %}
+                        {% if page_obj.number == i %}
+                        <span class="px-3 py-1.5 rounded-xl bg-sky-600 text-white font-bold">{{ i }}</span>
+                        {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+                        <a href="?{% if filter_name %}patient_name={{ filter_name }}&{% elif filter_phone %}patient_phone={{ filter_phone }}&{% endif %}sort_with={{ sort_with }}&page={{ i }}" class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50">{{ i }}</a>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <a href="?{% if filter_name %}patient_name={{ filter_name }}&{% elif filter_phone %}patient_phone={{ filter_phone }}&{% endif %}sort_with={{ sort_with }}&page={{ page_obj.next_page_number }}" class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 font-medium">
+                        Next →
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </main>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mount React Top Header
+        const headerMount = document.getElementById('react-top-header');
+        if (headerMount && (window.CmsTopHeader || window.ImhotepTopHeader)) {
+            window.mountReactComponent((window.CmsTopHeader || window.ImhotepTopHeader), headerMount, {
+                user: {
+                    first_name: "{{ user.first_name|escapejs }}",
+                    last_name: "{{ user.last_name|escapejs }}",
+                    is_doctor: {{ user.is_doctor|yesno:"true,false" }}
+                },
+                isDemo: {{ user.is_demo|yesno:"true,false" }}
+            });
+        }
+
+        // Mount React Patient Explorer
+        const explorerMount = document.getElementById('react-patient-explorer');
+        const jsonEl = document.getElementById('patients-data-json');
+        if (explorerMount && jsonEl && (window.CmsPatientExplorer || window.ImhotepPatientExplorer)) {
+            let patientList = [];
+            try {
+                patientList = JSON.parse(jsonEl.textContent.trim());
+            } catch (err) {
+                console.error('Error parsing patient JSON', err);
+            }
+            window.mountReactComponent((window.CmsPatientExplorer || window.ImhotepPatientExplorer), explorerMount, {
+                initialPatients: patientList,
+                addPatientUrl: "{% url 'add_patient' %}"
+            });
+        }
+    });
+</script>
+{% endblock %}

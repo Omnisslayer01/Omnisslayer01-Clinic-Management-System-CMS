@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}Doctor Dashboard - CMS{% endblock %}
+
+{% block content %}
+<div class="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <!-- Sidebar Navigation -->
+    {% include "nav.html" %}
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- React Top Header Mount -->
+        <div id="react-top-header"></div>
+
+        <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-8">
+            <!-- Welcome Hero Banner -->
+            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-sky-600 via-sky-500 to-indigo-600 p-6 sm:p-8 text-white shadow-xl shadow-sky-600/15">
+                <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-xs font-semibold uppercase tracking-wider mb-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                            <span>{{ today_date|date:"l, F j, Y" }}</span>
+                        </div>
+                        <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight">
+                            {% trans "Welcome back, Dr." %} {{ user_data.first_name }}
+                        </h1>
+                        <p class="mt-1 text-sm sm:text-base text-sky-100 font-medium max-w-xl">
+                            Here is an overview of your clinical appointments, patient histories, and practice metrics for today.
+                        </p>
+                    </div>
+
+                    <!-- Hero Quick Action Buttons -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <a href="{% url 'add_patient' %}" class="flex items-center gap-2 px-5 py-3 rounded-2xl bg-white text-sky-700 hover:bg-sky-50 font-bold text-xs sm:text-sm shadow-lg shadow-black/10 hover:scale-105 transition-all duration-200">
+                            <i class="fas fa-user-plus text-sky-600"></i>
+                            <span>{% trans "Add Patient" %}</span>
+                        </a>
+                        <a href="{% url 'schedule_appointment' %}" class="flex items-center gap-2 px-5 py-3 rounded-2xl bg-sky-700/60 hover:bg-sky-700 text-white border border-white/20 font-bold text-xs sm:text-sm shadow-lg backdrop-blur-md hover:scale-105 transition-all duration-200">
+                            <i class="fas fa-calendar-plus"></i>
+                            <span>{% trans "Schedule Appointment" %}</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Abstract Decorative Shapes -->
+                <div class="absolute -bottom-12 -right-12 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+                <div class="absolute -top-12 -left-12 w-48 h-48 bg-indigo-500/20 rounded-full blur-xl pointer-events-none"></div>
+            </div>
+
+            <!-- React KPI Stat Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+                <!-- Total Patients -->
+                <a href="{% url 'show_patients' %}" class="group relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 block">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                {% trans "Total Patients" %}
+                            </p>
+                            <h3 class="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                                {{ number_of_patients }}
+                            </h3>
+                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Registered records</p>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-users text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                        <span class="text-emerald-600 font-semibold flex items-center gap-1">
+                            <i class="fas fa-check"></i> Active Practice
+                        </span>
+                        <span class="text-slate-400 group-hover:text-sky-600 transition-colors">View all →</span>
+                    </div>
+                </a>
+
+                <!-- Patient Records -->
+                <a href="{% url 'show_patients' %}" class="group relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 block">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                {% trans "Clinical Records" %}
+                            </p>
+                            <h3 class="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                                {{ number_of_patients_records }}
+                            </h3>
+                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                {% if latest_update == "today" %}
+                                    Updated today
+                                {% elif latest_update == "yesterday" %}
+                                    Updated yesterday
+                                {% elif latest_update %}
+                                    {{ latest_update|date:"M d, Y" }}
+                                {% else %}
+                                    No records yet
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-file-waveform text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                        <span class="text-amber-600 font-semibold flex items-center gap-1">
+                            <i class="fas fa-history"></i> Prescriptions & Notes
+                        </span>
+                        <span class="text-slate-400 group-hover:text-sky-600 transition-colors">Explore →</span>
+                    </div>
+                </a>
+
+                <!-- Today's Appointments -->
+                <a href="{% url 'appointment_list' %}" class="group relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 block">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                {% trans "Today's Schedule" %}
+                            </p>
+                            <h3 class="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                                {{ todays_appointments.total }}
+                            </h3>
+                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                {{ todays_appointments.completed }} {% trans "completed" %}
+                            </p>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-calendar-day text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                        <span class="text-sky-600 font-semibold flex items-center gap-1">
+                            <i class="fas fa-clock"></i> Consultations
+                        </span>
+                        <span class="text-slate-400 group-hover:text-sky-600 transition-colors">Schedule →</span>
+                    </div>
+                </a>
+
+                <!-- Daily Average -->
+                <div class="group relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                {% trans "Daily Patient Avg." %}
+                            </p>
+                            <h3 class="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white">
+                                {{ avg_patients_per_day }}
+                            </h3>
+                            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Patients per day (30d)</p>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-chart-line text-lg"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                        <span class="text-indigo-600 font-semibold flex items-center gap-1">
+                            <i class="fas fa-wave-square"></i> Patient Flow
+                        </span>
+                        <span class="text-slate-400">30-day index</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- React Appointment Manager Mount -->
+            <div id="react-appointments-container"></div>
+
+            <!-- Server Rendered Fallback / Appointment Table (hydrated by React) -->
+            <div id="appointments-fallback" class="hidden">
+                <script id="appointments-json" type="application/json">
+                    [
+                        {% for appointment in page_obj %}
+                        {
+                            "id": {{ appointment.id }},
+                            "patient_name": "{{ appointment.patient.name|escapejs }}",
+                            "phone": "{{ appointment.patient.phone_number|default:''|escapejs }}",
+                            "date": "{{ appointment.date|date:'M d, Y' }}",
+                            "start_time": "{{ appointment.start_time|time:'g:i A' }}",
+                            "end_time": "{{ appointment.end_time|time:'g:i A' }}",
+                            "status": "{{ appointment.status }}",
+                            "notes": "{{ appointment.notes|default:''|escapejs }}",
+                            "detail_url": "{% url 'appointment_detail' %}?appointment_id={{ appointment.id }}",
+                            "update_url": "{% url 'update_appointment_doctor' %}?appointment_id={{ appointment.id }}"
+                        }{% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                    ]
+                </script>
+            </div>
+
+            <!-- Pagination bar -->
+            {% if page_obj.has_other_pages %}
+            <div class="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm text-xs">
+                <div class="text-slate-500">
+                    Showing <strong>{{ page_obj.start_index }}</strong> to <strong>{{ page_obj.end_index }}</strong> of <strong>{{ page_obj.paginator.count }}</strong> appointments
+                </div>
+                <div class="flex items-center gap-1.5">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 font-medium">
+                        ← Previous
+                    </a>
+                    {% endif %}
+
+                    {% for i in page_obj.paginator.page_range %}
+                        {% if page_obj.number == i %}
+                        <span class="px-3 py-1.5 rounded-xl bg-sky-600 text-white font-bold">{{ i }}</span>
+                        {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+                        <a href="?page={{ i }}" class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50">{{ i }}</a>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 font-medium">
+                        Next →
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </main>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mount React Top Header
+        const headerMount = document.getElementById('react-top-header');
+        if (headerMount && (window.CmsTopHeader || window.ImhotepTopHeader)) {
+            window.mountReactComponent((window.CmsTopHeader || window.ImhotepTopHeader), headerMount, {
+                user: {
+                    first_name: "{{ user_data.first_name|escapejs }}",
+                    last_name: "{{ user_data.last_name|escapejs }}",
+                    is_doctor: true
+                },
+                isDemo: {{ user_data.is_demo|yesno:"true,false" }}
+            });
+        }
+
+        // Mount React Appointment Manager
+        const appMount = document.getElementById('react-appointments-container');
+        const jsonEl = document.getElementById('appointments-json');
+        if (appMount && jsonEl && (window.CmsDashboard || window.ImhotepDashboard) && (window.CmsDashboard || window.ImhotepDashboard).AppointmentManager) {
+            let list = [];
+            try {
+                list = JSON.parse(jsonEl.textContent.trim());
+            } catch(e) {
+                console.error('Error parsing appointments JSON', e);
+            }
+            window.mountReactComponent((window.CmsDashboard || window.ImhotepDashboard).AppointmentManager, appMount, {
+                initialAppointments: list,
+                csrfToken: "{{ csrf_token }}"
+            });
+        }
+    });
+</script>
+{% endblock %}

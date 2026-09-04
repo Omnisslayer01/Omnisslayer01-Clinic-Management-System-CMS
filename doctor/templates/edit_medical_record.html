@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}Edit Medical Record - CMS{% endblock %}
+
+{% block extra_head %}
+<!-- Quill CSS -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<style>
+    .ql-toolbar.ql-snow {
+        border-top-left-radius: 1rem;
+        border-top-right-radius: 1rem;
+        border-color: #e2e8f0;
+        background: #f8fafc;
+    }
+    .dark .ql-toolbar.ql-snow {
+        border-color: #334155;
+        background: #0f172a;
+    }
+    .ql-container.ql-snow {
+        border-bottom-left-radius: 1rem;
+        border-bottom-right-radius: 1rem;
+        border-color: #e2e8f0;
+        min-height: 140px;
+        font-family: inherit;
+        font-size: 0.875rem;
+    }
+    .dark .ql-container.ql-snow {
+        border-color: #334155;
+        background: #1e293b;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <!-- Sidebar Navigation -->
+    {% include "nav.html" %}
+
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- React Top Header Mount -->
+        <div id="react-top-header"></div>
+
+        <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-4xl w-full mx-auto space-y-6">
+            <!-- Header -->
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                        {% trans "Edit Consultation Record" %}
+                    </h1>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-1">
+                        Editing consultation for <strong class="text-slate-700 dark:text-slate-300">{{ patient_name }}</strong>
+                    </p>
+                </div>
+                <a href="{% url 'show_patient_details' %}?patient_id={{ patient_id }}" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back to Profile</span>
+                </a>
+            </div>
+
+            <!-- Form Card -->
+            <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-sm">
+                <form method="POST" action="{% url 'update_medical_record' %}?medical_record_id={{ medical_record.id }}" id="editMedicalRecordForm" class="space-y-6">
+                    {% csrf_token %}
+
+                    <!-- Date Field -->
+                    <div>
+                        <label for="date" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                            {% trans "Consultation Date" %} <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative max-w-xs">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                <i class="far fa-calendar-alt text-xs"></i>
+                            </div>
+                            <input type="date" name="date" id="date" value="{{ medical_record.date|date:'Y-m-d' }}" required
+                                   class="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        </div>
+                    </div>
+
+                    <!-- Details Field -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                {% trans "Clinical Details & Diagnosis" %}
+                            </label>
+                            <span class="text-[11px] text-slate-400">Rich formatted clinical history</span>
+                        </div>
+                        <div id="details-editor"></div>
+                        <input type="hidden" name="details" id="details-input">
+                    </div>
+
+                    <!-- Remarks Field -->
+                    <div>
+                        <label for="remarks" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                            {% trans "Clinical Remarks & Observations" %}
+                        </label>
+                        <textarea name="remarks" id="remarks" rows="2"
+                                  class="w-full p-3.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500">{{ medical_record.remarks }}</textarea>
+                    </div>
+
+                    <!-- Prescription Field -->
+                    <div class="p-5 rounded-2xl bg-sky-50/50 dark:bg-sky-950/20 border border-sky-100 dark:border-sky-900/40 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2 text-sky-800 dark:text-sky-300 font-bold text-xs">
+                                <i class="fas fa-prescription text-sm"></i>
+                                <span>{% trans "Prescription (Rx) & Medications" %}</span>
+                            </div>
+                            <span class="text-[10px] text-slate-500">Supports English & Arabic RTL</span>
+                        </div>
+                        <div id="prescription-editor"></div>
+                        <input type="hidden" name="prescription" id="prescription-input">
+                    </div>
+
+                    <!-- Hidden raw HTML sources for Quill hydration -->
+                    <div id="raw-details" class="hidden">{{ medical_record.details|safe }}</div>
+                    <div id="raw-prescription" class="hidden">{{ medical_record.prescription|safe }}</div>
+
+                    <!-- Submit Buttons -->
+                    <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+                        <a href="{% url 'show_patient_details' %}?patient_id={{ patient_id }}" class="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100">
+                            {% trans "Cancel" %}
+                        </a>
+                        <button type="submit" class="px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 hover:shadow-lg transition-all">
+                            {% trans "Update Record" %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const headerMount = document.getElementById('react-top-header');
+        if (headerMount && (window.CmsTopHeader || window.ImhotepTopHeader)) {
+            window.mountReactComponent((window.CmsTopHeader || window.ImhotepTopHeader), headerMount, {
+                user: {
+                    first_name: "{{ user.first_name|escapejs }}",
+                    last_name: "{{ user.last_name|escapejs }}",
+                    is_doctor: {{ user.is_doctor|yesno:"true,false" }}
+                },
+                isDemo: {{ user.is_demo|yesno:"true,false" }}
+            });
+        }
+
+        var detailsEditor = new Quill('#details-editor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline'],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                    ['clean']
+                ]
+            }
+        });
+        var rawDetails = document.getElementById('raw-details').innerHTML;
+        detailsEditor.root.innerHTML = rawDetails;
+
+        var prescriptionEditor = new Quill('#prescription-editor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline'],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                    ['clean']
+                ]
+            }
+        });
+        var rawPrescription = document.getElementById('raw-prescription').innerHTML;
+        prescriptionEditor.root.innerHTML = rawPrescription;
+
+        document.getElementById('editMedicalRecordForm').addEventListener('submit', function() {
+            document.getElementById('details-input').value = detailsEditor.root.innerHTML;
+            document.getElementById('prescription-input').value = prescriptionEditor.root.innerHTML;
+        });
+    });
+</script>
+{% endblock %}

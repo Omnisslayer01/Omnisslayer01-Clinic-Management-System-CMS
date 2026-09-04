@@ -1,0 +1,44 @@
+{% load static i18n %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% trans "Offline - CMS" %}</title>
+    <link rel="shortcut icon" href="{% static 'cms_logo.png' %}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: { sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] }
+          }
+        }
+      }
+    </script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 font-sans min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl text-center space-y-6">
+        <div class="w-16 h-16 mx-auto rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl border border-amber-100 dark:border-amber-900/50">
+            <i class="fas fa-wifi text-xl opacity-60"></i>
+        </div>
+
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">{% trans "You are currently offline" %}</h1>
+            <p class="mt-2 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                {% trans "Internet connectivity was lost. Patient cached files can still be accessed, and pending records will sync automatically once reconnected." %}
+            </p>
+        </div>
+
+        <button onclick="window.location.reload()" class="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 shadow-md shadow-sky-500/20 transition-all">
+            <i class="fas fa-rotate-right"></i>
+            <span>{% trans "Try Reconnecting" %}</span>
+        </button>
+    </div>
+</body>
+</html>

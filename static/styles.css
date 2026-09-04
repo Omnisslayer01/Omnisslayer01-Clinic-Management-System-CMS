@@ -1,0 +1,284 @@
+/* =========================================================
+   Clinic Management System (CMS) - Modern Clinical Design System
+   ========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+    --primary: #0284c7;
+    --primary-light: #38bdf8;
+    --primary-dark: #0369a1;
+}
+
+body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glassmorphism & Modern Surfaces */
+.glass-panel {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.dark .glass-panel {
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(51, 65, 85, 0.6);
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.dark .glass-card {
+    background: rgba(30, 41, 59, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+}
+
+/* Micro-interactions & Card Hover Effects */
+.card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 24px -6px rgba(2, 132, 199, 0.12), 0 8px 12px -4px rgba(2, 132, 199, 0.08);
+}
+
+.dark .card-hover:hover {
+    box-shadow: 0 16px 24px -6px rgba(0, 0, 0, 0.4), 0 8px 12px -4px rgba(56, 189, 248, 0.08);
+}
+
+/* Soft Glow Accents */
+.glow-sky {
+    box-shadow: 0 0 25px -3px rgba(14, 165, 233, 0.25);
+}
+
+.glow-emerald {
+    box-shadow: 0 0 25px -3px rgba(16, 185, 129, 0.25);
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+    background: #334155;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}
+
+/* Keyframe Animations */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes dropdown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.animate-slide-in {
+    animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-dropdown {
+    animation: dropdown 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Modern Form Controls styling */
+input[type="text"],
+input[type="tel"],
+input[type="url"],
+input[type="search"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+select,
+textarea {
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+/* Dark Mode Base Form Styles */
+.dark input[type="text"],
+.dark input[type="tel"],
+.dark input[type="url"],
+.dark input[type="search"],
+.dark input[type="password"],
+.dark input[type="email"],
+.dark input[type="number"],
+.dark input[type="date"],
+.dark input[type="time"],
+.dark input[type="datetime-local"],
+.dark select,
+.dark textarea {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+
+.dark select option {
+    background-color: #0f172a;
+    color: #f8fafc;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+    color: #64748b !important;
+    opacity: 1;
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
+}
+
+.dark input:disabled,
+.dark select:disabled,
+.dark textarea:disabled {
+    background-color: #334155 !important;
+    color: #64748b !important;
+}
+
+/* Dark Mode Tables */
+.dark table {
+    color: #cbd5e1 !important;
+}
+
+.dark thead {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+}
+
+.dark th {
+    color: #94a3b8 !important;
+}
+
+.dark td, 
+.dark td div, 
+.dark td p,
+.dark td span:not([class*="bg-"]) {
+    color: #cbd5e1 !important;
+}
+
+.dark tbody tr {
+    border-color: #334155 !important;
+}
+
+.dark tbody tr:hover {
+    background-color: #1e293b !important;
+}
+
+/* Dark Mode - Quill Rich Text Editor */
+.dark .ql-toolbar.ql-snow {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+}
+
+.dark .ql-container.ql-snow {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+
+.dark .ql-editor {
+    color: #f8fafc !important;
+}
+
+.dark .ql-editor p {
+    color: #f8fafc !important;
+}
+
+.dark .ql-editor.ql-blank::before {
+    color: #64748b !important;
+    font-style: normal;
+}
+
+.dark .ql-snow .ql-stroke {
+    stroke: #94a3b8 !important;
+}
+
+.dark .ql-snow .ql-fill {
+    fill: #94a3b8 !important;
+}
+
+.dark .ql-snow .ql-picker {
+    color: #94a3b8 !important;
+}
+
+.dark .ql-snow .ql-picker-options {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
+}
+
+.dark .ql-snow .ql-toolbar button:hover .ql-stroke,
+.dark .ql-snow .ql-toolbar button.ql-active .ql-stroke,
+.dark .ql-snow .ql-toolbar button:focus .ql-stroke {
+    stroke: #38bdf8 !important;
+}
+
+.dark .ql-snow .ql-toolbar button:hover .ql-fill,
+.dark .ql-snow .ql-toolbar button.ql-active .ql-fill,
+.dark .ql-snow .ql-toolbar button:focus .ql-fill {
+    fill: #38bdf8 !important;
+}

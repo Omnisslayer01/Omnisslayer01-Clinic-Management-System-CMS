@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+{% load socialaccount %}
+
+{% block title %}Register - CMS{% endblock %}
+
+{% block content %}
+<section class="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden transition-colors duration-200">
+    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-sky-500/10 dark:bg-sky-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="sm:mx-auto sm:w-full sm:max-w-lg relative z-10 text-center mb-6">
+        <a href="{% url 'landing_page' %}" class="inline-flex items-center gap-3 group mb-3">
+            <div class="p-2.5 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-xl shadow-sky-500/25 group-hover:scale-105 transition-transform duration-200 overflow-hidden">
+                <img src="{% static 'cms_logo.png' %}" alt="CMS Logo" class="w-9 h-9 object-contain rounded-xl">
+            </div>
+            <span class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                CMS
+            </span>
+        </a>
+        <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            {% trans "Create Your Practice Account" %}
+        </h2>
+        <p class="mt-1 text-xs text-slate-500">
+            {% trans "Register a doctor account to start managing clinical records and scheduling." %}
+        </p>
+    </div>
+
+    <div class="sm:mx-auto sm:w-full sm:max-w-lg relative z-10">
+        <div class="rounded-3xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border border-slate-200/80 dark:border-slate-800 p-8 shadow-2xl">
+            <!-- Google Sign Up -->
+            <a href="{% url 'google_login' %}" class="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-all shadow-sm">
+                <svg class="w-4 h-4" viewBox="0 0 48 48">
+                    <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12 c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24 c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
+                    <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657 C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
+                    <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36 c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
+                    <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571 c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
+                </svg>
+                <span>Sign up with Google</span>
+            </a>
+
+            <!-- Divider -->
+            <div class="my-5 relative">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-slate-200 dark:border-slate-800"></div>
+                </div>
+                <div class="relative flex justify-center text-[11px] font-bold uppercase tracking-wider">
+                    <span class="px-3 bg-white dark:bg-slate-900 text-slate-400">{% trans "Or register with email" %}</span>
+                </div>
+            </div>
+
+            <!-- Register Form -->
+            <form action="{% url 'register' %}" class="space-y-4" method="post" onsubmit="return validatePassword()">
+                {% csrf_token %}
+
+                <div>
+                    <label for="username" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                        {% trans "Username" %}
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <i class="fas fa-at text-xs"></i>
+                        </div>
+                        <input type="text" name="username" id="username" required placeholder="Choose a username"
+                               class="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label for="first_name" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                            {% trans "First Name" %}
+                        </label>
+                        <input type="text" name="first_name" id="first_name" required placeholder="First name"
+                               class="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                    <div>
+                        <label for="last_name" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                            {% trans "Last Name" %}
+                        </label>
+                        <input type="text" name="last_name" id="last_name" required placeholder="Last name"
+                               class="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="Email" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                        {% trans "Email" %}
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <i class="far fa-envelope text-xs"></i>
+                        </div>
+                        <input type="email" name="email" id="Email" required placeholder="your.email@clinic.com"
+                               class="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                </div>
+
+                <!-- User Type Selection -->
+                <div>
+                    <label for="user_type" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                        {% trans "Role" %}
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <i class="fas fa-user-md text-xs"></i>
+                        </div>
+                        <select id="user_type" name="user_type" required 
+                                class="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            <option value="" disabled>Select role</option>
+                            <option value="doctor" selected>Doctor / Practitioner</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Doctor Specialization -->
+                <div id="doctor_fields">
+                    <label for="specialization" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                        {% trans "Medical Specialization" %}
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <i class="fas fa-stethoscope text-xs"></i>
+                        </div>
+                        <input type="text" name="specialization" id="specialization" placeholder="e.g. Cardiology, General Medicine, Pediatrics"
+                               class="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                </div>
+
+                <!-- Password and Confirm Password -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label for="password" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                            {% trans "Password" %}
+                        </label>
+                        <div class="relative">
+                            <input type="password" name="password" id="password" required placeholder="Min. 8 characters"
+                                   class="w-full px-3.5 pr-8 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            <button type="button" onclick="togglePasswordVisibility('password')" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600">
+                                <i class="fas fa-eye text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="confirm_password" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                            {% trans "Confirm Password" %}
+                        </label>
+                        <div class="relative">
+                            <input type="password" id="confirm_password" required placeholder="Repeat password"
+                                   class="w-full px-3.5 pr-8 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            <button type="button" onclick="togglePasswordVisibility('confirm_password')" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600">
+                                <i class="fas fa-eye text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-[11px] text-slate-500">
+                    By registering, you agree to the
+                    <a href="/terms" class="text-sky-600 dark:text-sky-400 font-semibold hover:underline">terms of service</a>
+                    and
+                    <a href="/privacy" class="text-sky-600 dark:text-sky-400 font-semibold hover:underline">privacy policy</a>.
+                </div>
+
+                <button type="submit" class="w-full py-3 px-4 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-500 shadow-md shadow-sky-600/20 hover:shadow-lg transition-all duration-200 mt-2">
+                    {% trans "Create Free Account" %}
+                </button>
+            </form>
+
+            <p class="mt-6 text-center text-xs text-slate-500">
+                Already have an account?
+                <a href="{% url 'login' %}" class="font-bold text-sky-600 dark:text-sky-400 hover:underline ml-1">
+                    {% trans "Sign in" %}
+                </a>
+            </p>
+        </div>
+    </div>
+</section>
+{% endblock %}

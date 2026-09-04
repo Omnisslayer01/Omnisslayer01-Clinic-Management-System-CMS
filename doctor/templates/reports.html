@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% load static i18n %}
+
+{% block title %}Reports & Clinical Analytics - CMS{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex bg-slate-50 dark:bg-slate-950 font-sans transition-colors duration-200">
+  {% include 'doctor/nav.html' %}
+
+  <main class="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
+    <div id="topHeaderRoot"></div>
+
+    <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar">
+      
+      <!-- Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <span class="w-3 h-3 rounded-full bg-sky-500"></span>
+            <h1 class="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              Clinical Reports & Analytics
+            </h1>
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300">
+              Practice Intelligence
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Patient encounter statistics · No-show risk distribution · Slot occupancy trends
+          </p>
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <p class="text-[11px] font-semibold text-slate-400 uppercase">Registered Patients</p>
+          <h3 class="text-2xl font-black text-slate-900 dark:text-white mt-1">{{ total_patients }}</h3>
+          <p class="text-[10px] text-emerald-600 mt-1 font-bold">↑ Active Practice</p>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <p class="text-[11px] font-semibold text-slate-400 uppercase">Total Appointments</p>
+          <h3 class="text-2xl font-black text-slate-900 dark:text-white mt-1">{{ total_appts }}</h3>
+          <p class="text-[10px] text-sky-600 mt-1 font-bold">{{ completed_appts }} Completed</p>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <p class="text-[11px] font-semibold text-slate-400 uppercase">No-Show Risk Alert</p>
+          <h3 class="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1">{{ high_risk_patients }}</h3>
+          <p class="text-[10px] text-rose-500 mt-1 font-bold">Aggressive Cadence</p>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <p class="text-[11px] font-semibold text-slate-400 uppercase">Avg Consultation Time</p>
+          <h3 class="text-2xl font-black text-slate-900 dark:text-white mt-1">18.4 min</h3>
+          <p class="text-[10px] text-emerald-600 mt-1 font-bold">Optimal Flow</p>
+        </div>
+      </div>
+
+      <!-- Graphical Visualizer Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Slot Occupancy Breakdown -->
+        <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
+          <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+            <i class="fas fa-chart-column text-sky-500"></i>
+            <span>Weekly Appointment Volume</span>
+          </h3>
+
+          <div class="space-y-3 pt-2">
+            <div>
+              <div class="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <span>Monday</span>
+                <span>92% (18/20 slots)</span>
+              </div>
+              <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                <div class="h-full bg-sky-500 rounded-full w-[92%]"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <span>Tuesday</span>
+                <span>85% (17/20 slots)</span>
+              </div>
+              <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                <div class="h-full bg-sky-500 rounded-full w-[85%]"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <span>Wednesday</span>
+                <span>95% (19/20 slots)</span>
+              </div>
+              <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                <div class="h-full bg-indigo-500 rounded-full w-[95%]"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <span>Thursday</span>
+                <span>78% (15/20 slots)</span>
+              </div>
+              <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                <div class="h-full bg-sky-500 rounded-full w-[78%]"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <span>Friday</span>
+                <span>88% (17/20 slots)</span>
+              </div>
+              <div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                <div class="h-full bg-sky-500 rounded-full w-[88%]"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- No-Show Risk Tier Distribution -->
+        <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
+          <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+            <i class="fas fa-shield-halved text-emerald-500"></i>
+            <span>No-Show Risk Distribution (AI Model)</span>
+          </h3>
+
+          <div class="space-y-4 pt-2">
+            <div class="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-bold text-emerald-900 dark:text-emerald-200">Low Risk Tier (< 15%)</h4>
+                <p class="text-[10px] text-emerald-700 dark:text-emerald-300 mt-0.5">Standard single SMS reminder 24h prior</p>
+              </div>
+              <span class="text-base font-black text-emerald-700 dark:text-emerald-300">76%</span>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-bold text-amber-900 dark:text-amber-200">Medium Risk Tier (15 - 40%)</h4>
+                <p class="text-[10px] text-amber-700 dark:text-amber-300 mt-0.5">Dual touch: 48h + 24h confirmation prompts</p>
+              </div>
+              <span class="text-base font-black text-amber-700 dark:text-amber-300">18%</span>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-bold text-rose-900 dark:text-rose-200">High Risk Tier (> 40%)</h4>
+                <p class="text-[10px] text-rose-700 dark:text-rose-300 mt-0.5">Aggressive cadence: Phone call + SMS with 2h confirmation deadline</p>
+              </div>
+              <span class="text-base font-black text-rose-700 dark:text-rose-300">6%</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.mountReactComponent && window.TopHeader) {
+      window.mountReactComponent(window.TopHeader, 'topHeaderRoot', {
+        doctorName: "{{ doctor.user.get_full_name|default:'Dr. Zamil' }}",
+        specialization: "{{ doctor.specialization|default:'Lead Clinical Practitioner' }}"
+      });
+    }
+  });
+</script>
+{% endblock %}

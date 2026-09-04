@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load static i18n %}
+
+{% block title %}Lab Orders & Ticket Lifecycle - CMS{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex bg-slate-50 dark:bg-slate-950 font-sans transition-colors duration-200">
+  {% include 'doctor/nav.html' %}
+
+  <main class="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
+    <div id="topHeaderRoot"></div>
+
+    <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar">
+      
+      <!-- Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <span class="w-3 h-3 rounded-full bg-indigo-500"></span>
+            <h1 class="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              Lab Order Tickets & Lifecycle
+            </h1>
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">
+              Diagnostic Tracking
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Traceable order lifecycle: Order Created ➔ Sample Pending ➔ Processing ➔ Completed
+          </p>
+        </div>
+      </div>
+
+      <!-- Lifecycle Kanban / Table -->
+      <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-5">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+          <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+            <i class="fas fa-vial-virus text-indigo-500"></i>
+            <span>Active Diagnostic Tickets ({{ tickets|length }})</span>
+          </h3>
+          <span class="text-[11px] text-slate-400 font-mono">Automated SMS Triggered upon Completion</span>
+        </div>
+
+        <div class="space-y-4">
+          {% for t in tickets %}
+            <div class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 space-y-4">
+              
+              <!-- Ticket Header -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-mono font-black text-indigo-600 dark:text-indigo-400">#{{ t.ticket_id }}</span>
+                    <span class="text-slate-300">·</span>
+                    <h4 class="text-sm font-bold text-slate-900 dark:text-white">{{ t.test_name }}</h4>
+                    {% if t.test_code %}
+                      <span class="text-[10px] px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono">{{ t.test_code }}</span>
+                    {% endif %}
+                  </div>
+                  <p class="text-xs text-slate-500 mt-0.5">
+                    Patient: <strong>{{ t.patient.name }}</strong> ({{ t.patient.phone_number }}) · Ordered by: Dr. {{ doctor.user.last_name|default:"Zamil" }}
+                  </p>
+                </div>
+
+                <!-- Status Badge -->
+                <div>
+                  <span class="px-3 py-1 rounded-full text-xs font-bold ${
+                    t.status == 'Completed' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
+                    t.status == 'Processing' ? 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300' :
+                    'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                  }">
+                    {{ t.status }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Lifecycle Progress Stepper -->
+              <div class="grid grid-cols-4 gap-2 text-center text-[10px] font-bold">
+                <div class="p-2 rounded-xl {% if t.status in 'Order Created Sample Pending Processing Completed' %}bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300{% else %}bg-slate-200 text-slate-400{% endif %}">
+                  1. Order Created
+                </div>
+                <div class="p-2 rounded-xl {% if t.status in 'Sample Pending Processing Completed' %}bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300{% else %}bg-slate-200 text-slate-400{% endif %}">
+                  2. Sample Collected
+                </div>
+                <div class="p-2 rounded-xl {% if t.status in 'Processing Completed' %}bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300{% else %}bg-slate-200 text-slate-400{% endif %}">
+                  3. In Lab Processing
+                </div>
+                <div class="p-2 rounded-xl {% if t.status == 'Completed' %}bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300{% else %}bg-slate-200 text-slate-400{% endif %}">
+                  4. Results Completed
+                </div>
+              </div>
+
+              <!-- Notes & Result Summary -->
+              {% if t.result_summary %}
+                <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs">
+                  <span class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Laboratory Findings & Report</span>
+                  <p class="text-slate-800 dark:text-slate-200 font-mono">{{ t.result_summary }}</p>
+                </div>
+              {% endif %}
+
+              <!-- Action Controls -->
+              <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                {% if t.status == 'Order Created' %}
+                  <button onclick="advanceLabStatus('{{ t.ticket_id }}', 'Sample Pending')" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold">
+                    Mark Sample Collected
+                  </button>
+                {% elif t.status == 'Sample Pending' %}
+                  <button onclick="advanceLabStatus('{{ t.ticket_id }}', 'Processing')" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold">
+                    Send to Lab Processing
+                  </button>
+                {% elif t.status == 'Processing' %}
+                  <button onclick="advanceLabStatus('{{ t.ticket_id }}', 'Completed')" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">
+                    Complete & Dispatch Patient SMS
+                  </button>
+                {% endif %}
+              </div>
+
+            </div>
+          {% empty %}
+            <div class="text-center py-10 text-slate-400 text-xs">
+              No lab tickets recorded.
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  async function advanceLabStatus(ticketId, newStatus) {
+    try {
+      const res = await fetch(`/doctor/api/lab-status/${ticketId}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await res.json();
+      if (data.success) {
+        (window.CmsToasts || window.ImhotepToasts) && (window.CmsToasts || window.ImhotepToasts).notify(`Lab ticket #${ticketId} updated to ${newStatus}!`, 'success');
+        setTimeout(() => location.reload(), 1000);
+      }
+    } catch (e) {
+      (window.CmsToasts || window.ImhotepToasts) && (window.CmsToasts || window.ImhotepToasts).notify('Error updating ticket status', 'error');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.mountReactComponent && window.TopHeader) {
+      window.mountReactComponent(window.TopHeader, 'topHeaderRoot', {
+        doctorName: "{{ doctor.user.get_full_name|default:'Dr. Zamil' }}",
+        specialization: "{{ doctor.specialization|default:'Lead Clinical Practitioner' }}"
+      });
+    }
+  });
+</script>
+{% endblock %}

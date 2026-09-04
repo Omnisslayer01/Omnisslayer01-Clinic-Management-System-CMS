@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}Edit Patient - CMS{% endblock %}
+
+{% block content %}
+<div class="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <!-- Sidebar Navigation -->
+    {% include "nav.html" %}
+
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- React Top Header Mount -->
+        <div id="react-top-header"></div>
+
+        <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-4xl w-full mx-auto space-y-6">
+            <!-- Header -->
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                        {% trans "Edit Patient Information" %}
+                    </h1>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-1">
+                        Editing record for <strong class="text-slate-700 dark:text-slate-300">{{ patients.0.name }}</strong>
+                    </p>
+                </div>
+                <a href="{% url 'show_patient_details' %}?patient_id={{ patients.0.id }}" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back to Profile</span>
+                </a>
+            </div>
+
+            <!-- Form Card -->
+            <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-sm">
+                <form method="POST" action="{% url 'update_patient' %}?patient_id={{ patients.0.id }}" id="editPatientForm" class="space-y-6">
+                    {% csrf_token %}
+
+                    <div class="space-y-4">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                            <i class="fas fa-id-card"></i>
+                            <span>Personal Identification</span>
+                        </h3>
+
+                        <!-- Name Field -->
+                        <div>
+                            <label for="name" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                                {% trans "Full Name" %} <span class="text-rose-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fas fa-user text-xs"></i>
+                                </div>
+                                <input type="text" name="name" id="name" value="{{ patients.0.name }}" required
+                                       class="w-full pl-10 pr-4 py-3 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            </div>
+                        </div>
+
+                        <!-- Gender & Date of Birth -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="gender" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                                    {% trans "Gender" %} <span class="text-rose-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                        <i class="fas fa-venus-mars text-xs"></i>
+                                    </div>
+                                    <select name="gender" id="gender" required
+                                            class="w-full pl-10 pr-4 py-3 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                                        <option value="Male" {% if patients.0.gender == 'Male' %}selected{% endif %}>Male</option>
+                                        <option value="Female" {% if patients.0.gender == 'Female' %}selected{% endif %}>Female</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="date_of_birth" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                                    {% trans "Date of Birth" %}
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                        <i class="far fa-calendar text-xs"></i>
+                                    </div>
+                                    <input type="date" name="date_of_birth" id="date_of_birth" value="{{ patients.0.date_of_birth|date:'Y-m-d' }}"
+                                           class="w-full pl-10 pr-4 py-3 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 pt-2">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                            <i class="fas fa-address-book"></i>
+                            <span>Contact Information</span>
+                        </h3>
+
+                        <!-- Phone Number -->
+                        <div>
+                            <label for="phone_number" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                                {% trans "Phone Number" %}
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fas fa-phone text-xs"></i>
+                                </div>
+                                <input type="tel" name="phone_number" id="phone_number" value="{{ patients.0.phone_number }}"
+                                       class="w-full pl-10 pr-4 py-3 rounded-xl text-xs sm:text-sm font-mono bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Buttons -->
+                    <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+                        <a href="{% url 'show_patient_details' %}?patient_id={{ patients.0.id }}" class="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100">
+                            {% trans "Cancel" %}
+                        </a>
+                        <button type="submit" class="px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 hover:shadow-lg transition-all">
+                            {% trans "Save Changes" %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const headerMount = document.getElementById('react-top-header');
+        if (headerMount && (window.CmsTopHeader || window.ImhotepTopHeader)) {
+            window.mountReactComponent((window.CmsTopHeader || window.ImhotepTopHeader), headerMount, {
+                user: {
+                    first_name: "{{ user.first_name|escapejs }}",
+                    last_name: "{{ user.last_name|escapejs }}",
+                    is_doctor: {{ user.is_doctor|yesno:"true,false" }}
+                },
+                isDemo: {{ user.is_demo|yesno:"true,false" }}
+            });
+        }
+    });
+</script>
+{% endblock %}

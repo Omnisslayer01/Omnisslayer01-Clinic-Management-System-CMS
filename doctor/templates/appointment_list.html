@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}Appointments Schedule - CMS{% endblock %}
+
+{% block content %}
+<div class="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <!-- Sidebar Navigation -->
+    {% include "nav.html" %}
+
+    <div class="flex-1 flex flex-col min-w-0">
+        <!-- React Top Header Mount -->
+        <div id="react-top-header"></div>
+
+        <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+            <!-- Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80 dark:border-slate-800">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                        {% trans "Clinical Appointments" %}
+                    </h1>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-1">
+                        {% trans "Manage patient consultations, schedules, and check-in status" %}
+                    </p>
+                </div>
+                <div>
+                    <a href="{% url 'schedule_appointment' %}" class="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-sky-600/20 hover:shadow-lg transition-all">
+                        <i class="fas fa-calendar-plus"></i>
+                        <span>{% trans "Book New Appointment" %}</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filters Bar -->
+            <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                <form method="GET" action="{% url 'appointment_list' %}" class="flex flex-wrap items-center gap-4 text-xs">
+                    <div>
+                        <label for="date" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                            {% trans "Filter Date" %}
+                        </label>
+                        <input type="date" id="date" name="date" value="{{ request.GET.date }}" 
+                               class="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                    </div>
+
+                    <div>
+                        <label for="status" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                            {% trans "Status" %}
+                        </label>
+                        <select id="status" name="status" 
+                                class="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-sky-500 focus:outline-none">
+                            <option value="">All Statuses</option>
+                            <option value="scheduled" {% if request.GET.status == 'scheduled' %}selected{% endif %}>Scheduled</option>
+                            <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-end gap-2 pt-4">
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-semibold transition-colors">
+                            <i class="fas fa-filter text-[10px] mr-1"></i> Apply
+                        </button>
+                        {% if request.GET.date or request.GET.status %}
+                        <a href="{% url 'appointment_list' %}" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 font-medium">
+                            Clear
+                        </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tab Pills -->
+            <div class="flex gap-2 text-xs border-b border-slate-200/80 dark:border-slate-800 pb-3">
+                <a href="{% url 'appointment_list' %}{% if request.GET.date %}?date={{ request.GET.date }}{% endif %}" 
+                   class="px-4 py-2 rounded-xl font-bold transition-all {% if not request.GET.status or request.GET.status == '' %}bg-sky-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800{% endif %}">
+                    {% trans "All Appointments" %}
+                </a>
+                <a href="{% url 'appointment_list' %}?status=scheduled{% if request.GET.date %}&date={{ request.GET.date }}{% endif %}" 
+                   class="px-4 py-2 rounded-xl font-bold transition-all {% if request.GET.status == 'scheduled' %}bg-sky-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800{% endif %}">
+                    {% trans "Scheduled" %}
+                </a>
+                <a href="{% url 'appointment_list' %}?status=completed{% if request.GET.date %}&date={{ request.GET.date }}{% endif %}" 
+                   class="px-4 py-2 rounded-xl font-bold transition-all {% if request.GET.status == 'completed' %}bg-sky-600 text-white shadow-sm{% else %}text-slate-500 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800{% endif %}">
+                    {% trans "Completed" %}
+                </a>
+            </div>
+
+            <!-- Appointments List Table -->
+            {% if appointments %}
+            <div class="overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800 text-left text-xs">
+                        <thead class="bg-slate-50/80 dark:bg-slate-800/40 text-slate-500 font-semibold uppercase tracking-wider">
+                            <tr>
+                                <th class="px-6 py-3.5">Schedule Time</th>
+                                <th class="px-6 py-3.5">Patient Profile</th>
+                                <th class="px-6 py-3.5">Status</th>
+                                <th class="px-6 py-3.5 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                            {% for appointment in page_obj %}
+                            <tr class="hover:bg-sky-50/40 dark:hover:bg-slate-800/40 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="font-bold text-slate-900 dark:text-white">{{ appointment.date|date:"M d, Y" }}</div>
+                                    <div class="font-mono text-slate-500 text-[11px] flex items-center gap-1 mt-0.5">
+                                        <i class="far fa-clock text-sky-500"></i>
+                                        {{ appointment.start_time|time:"g:i A" }} - {{ appointment.end_time|time:"g:i A" }}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-sky-400 to-indigo-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">
+                                            {{ appointment.patient.name|slice:":1"|upper }}
+                                        </div>
+                                        <div>
+                                            <a href="{% url 'appointment_detail' %}?appointment_id={{ appointment.id }}" class="font-bold text-slate-900 dark:text-white hover:text-sky-600">
+                                                {{ appointment.patient.name }}
+                                            </a>
+                                            {% if appointment.patient.phone_number %}
+                                            <p class="text-[11px] text-slate-500 font-mono">{{ appointment.patient.phone_number }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if appointment.status == 'scheduled' %}
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800/60">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse"></span>
+                                        Scheduled
+                                    </span>
+                                    {% else %}
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                                        <i class="fas fa-check-circle text-[10px]"></i>
+                                        Completed
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        {% if appointment.status == 'scheduled' %}
+                                        <form method="POST" action="{% url 'mark_appointment' %}" class="inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="appointment_id" value="{{ appointment.id }}">
+                                            <button type="submit" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-[11px] shadow-sm transition-all">
+                                                <i class="fas fa-check mr-1"></i> Done
+                                            </button>
+                                        </form>
+                                        {% else %}
+                                        <form method="POST" action="{% url 'mark_appointment' %}" class="inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="appointment_id" value="{{ appointment.id }}">
+                                            <button type="submit" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 text-[11px] font-medium transition-all">
+                                                Reopen
+                                            </button>
+                                        </form>
+                                        {% endif %}
+
+                                        <a href="{% url 'appointment_detail' %}?appointment_id={{ appointment.id }}" class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100" title="Patient Chart">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+
+                                        <a href="{% url 'update_appointment_doctor' %}?appointment_id={{ appointment.id }}" class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100" title="Reschedule">
+                                            <i class="fas fa-pen"></i>
+                                        </a>
+
+                                        <button type="button" onclick="confirmDelete('{{ appointment.id }}', '{{ appointment.patient.name|escapejs }}')" class="p-1.5 rounded-lg border border-rose-200 dark:border-rose-900/60 text-rose-600 hover:bg-rose-50" title="Cancel Appointment">
+                                            <i class="fas fa-trash-can"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if page_obj.has_other_pages %}
+                <div class="flex items-center justify-between p-4 border-t border-slate-100 dark:border-slate-800 text-xs">
+                    <div class="text-slate-500">
+                        Showing <strong>{{ page_obj.start_index }}</strong> to <strong>{{ page_obj.end_index }}</strong> of <strong>{{ page_obj.paginator.count }}</strong> appointments
+                    </div>
+                    <div class="flex gap-2">
+                        {% if page_obj.has_previous %}
+                        <a href="?{% if request.GET.date %}date={{ request.GET.date }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}page={{ page_obj.previous_page_number }}" class="px-3 py-1.5 rounded-xl border bg-white dark:bg-slate-800">Previous</a>
+                        {% endif %}
+                        {% if page_obj.has_next %}
+                        <a href="?{% if request.GET.date %}date={{ request.GET.date }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}page={{ page_obj.next_page_number }}" class="px-3 py-1.5 rounded-xl border bg-white dark:bg-slate-800">Next</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <!-- Empty state -->
+            <div class="p-16 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-center">
+                <div class="w-16 h-16 mx-auto mb-3 rounded-2xl bg-sky-50 dark:bg-sky-950/60 flex items-center justify-center text-sky-500 text-2xl">
+                    <i class="far fa-calendar-check"></i>
+                </div>
+                <h4 class="text-base font-bold text-slate-800 dark:text-slate-200">No Appointments Scheduled</h4>
+                <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">There are no consultations matching your filter criteria.</p>
+                <a href="{% url 'schedule_appointment' %}" class="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20">
+                    <i class="fas fa-plus"></i> Schedule New Visit
+                </a>
+            </div>
+            {% endif %}
+        </main>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+    <div class="w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-2xl text-center">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center text-2xl">
+            <i class="fas fa-calendar-xmark"></i>
+        </div>
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Cancel Appointment?</h3>
+        <p class="text-xs text-slate-500 mt-2">
+            Are you sure you want to cancel the appointment for <strong id="patientName" class="text-slate-700 dark:text-slate-300"></strong>? This will release their slot.
+        </p>
+        <div class="mt-6 flex items-center justify-center gap-3">
+            <button type="button" onclick="closeDeleteModal()" class="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100">
+                Keep
+            </button>
+            <form id="deleteForm" method="POST" action="">
+                {% csrf_token %}
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-md shadow-rose-600/20">
+                    Yes, Cancel
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const headerMount = document.getElementById('react-top-header');
+        if (headerMount && (window.CmsTopHeader || window.ImhotepTopHeader)) {
+            window.mountReactComponent((window.CmsTopHeader || window.ImhotepTopHeader), headerMount, {
+                user: {
+                    first_name: "{{ user.first_name|escapejs }}",
+                    last_name: "{{ user.last_name|escapejs }}",
+                    is_doctor: {{ user.is_doctor|yesno:"true,false" }}
+                },
+                isDemo: {{ user.is_demo|yesno:"true,false" }}
+            });
+        }
+    });
+
+    function confirmDelete(appointmentId, patientName) {
+        document.getElementById('patientName').textContent = patientName;
+        document.getElementById('deleteForm').action = "{% url 'delete_appointment_doctor' %}?appointment_id=" + appointmentId;
+        document.getElementById('deleteModal').classList.remove('hidden');
+    }
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.add('hidden');
+    }
+</script>
+{% endblock %}

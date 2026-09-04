@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: cms_db
+      POSTGRES_USER: cms_user
+      POSTGRES_PASSWORD: cms_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cms_user -d cms_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - database_type=postgresql
+      - POSTGRES_DB=cms_db
+      - POSTGRES_USER=cms_user
+      - POSTGRES_PASSWORD=cms_password
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - SITE_DOMAIN=http://localhost:8000
+      - MAIL_USER=
+      - MAIL_PASSWORD=
+      - SECRET_KEY=dev-secret-key-not-for-production
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      bash -c "python manage.py makemigrations &&
+               python manage.py migrate &&
+               python manage.py runserver 0.0.0.0:8000"
+volumes:
+  postgres_data:

@@ -1,0 +1,89 @@
+{% load i18n static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="10;url=/">
+    <title>{% trans "Prescription Link Expired - CMS" %}</title>
+    <link rel="shortcut icon" href="{% static 'logo_1_.ico' %}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: { sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] }
+          }
+        }
+      }
+    </script>
+    <script>
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    </script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 min-h-screen flex items-center justify-center p-4 font-sans transition-colors duration-200">
+    <div class="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-8 text-center border border-slate-200/80 dark:border-slate-800 space-y-6">
+        <!-- Warning / Expired Icon -->
+        <div class="mx-auto w-16 h-16 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center text-2xl border border-amber-100 dark:border-amber-900/50">
+            <i class="fas fa-link-slash"></i>
+        </div>
+
+        <!-- Title -->
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                {% trans "Prescription Link Unavailable" %}
+            </h1>
+            <p class="mt-2 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                {% if error_message %}
+                    {{ error_message }}
+                {% else %}
+                    {% trans "This secure prescription share link has expired or access was revoked by the prescribing physician. Please request a new share link from your clinic." %}
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Countdown box -->
+        <div class="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 border border-slate-200/60 dark:border-slate-700/50">
+            <p class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-1">
+                {% trans "Redirecting to Home Page" %}
+            </p>
+            <div class="text-2xl font-black text-sky-600 dark:text-sky-400">
+                <span id="countdown">10</span> <span class="text-xs font-normal text-slate-400">{% trans "seconds" %}</span>
+            </div>
+        </div>
+
+        <!-- Action Button -->
+        <a href="/" class="w-full inline-flex justify-center items-center gap-2 px-5 py-3 text-xs font-bold rounded-xl text-white bg-sky-600 hover:bg-sky-700 shadow-md shadow-sky-500/20 transition-all">
+            <span>{% trans "Return to Clinic Portal" %}</span>
+            <i class="fas fa-arrow-right text-xs"></i>
+        </a>
+    </div>
+
+    <!-- Countdown Script -->
+    <script>
+        (function() {
+            var seconds = 10;
+            var countdownEl = document.getElementById('countdown');
+            var interval = setInterval(function() {
+                seconds--;
+                if (countdownEl) {
+                    countdownEl.textContent = seconds;
+                }
+                if (seconds <= 0) {
+                    clearInterval(interval);
+                    window.location.href = '/';
+                }
+            }, 1000);
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "CMS - Clinic Management System" %}{% endblock %}
+
+{% block content %}
+<div class="relative overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen flex flex-col justify-between">
+    <!-- Top Modern Navigation -->
+    <nav class="sticky top-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800/80 transition-colors duration-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <a href="{% url 'landing_page' %}" class="flex items-center gap-3">
+                    <div class="p-1.5 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-md shadow-sky-500/20 overflow-hidden">
+                        <img src="{% static 'cms_logo.png' %}" alt="CMS Logo" class="h-9 w-9 object-contain rounded-xl">
+                    </div>
+                    <span class="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                        CMS <span class="text-sky-600 dark:text-sky-400 font-light text-base sm:text-lg hidden xs:inline">Clinic Management</span>
+                    </span>
+                </a>
+                
+                <div class="flex items-center gap-3 sm:gap-4">
+                    <button 
+                        type="button" 
+                        onclick="(window.CmsTheme || window.ImhotepTheme) ? (window.CmsTheme || window.ImhotepTheme).toggle() : toggleTheme()"
+                        class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 transition-colors"
+                        title="Toggle Dark/Light Mode"
+                    >
+                        <i class="fas fa-circle-half-stroke text-sm"></i>
+                    </button>
+                    <a href="{% url 'demo_login' %}" class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-100 transition-colors">
+                        <i class="fas fa-bolt text-amber-500"></i>
+                        <span>Live Demo</span>
+                    </a>
+                    <a href="{% url 'login' %}" class="px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-sky-600 transition-colors">
+                        {% trans "Sign In" %}
+                    </a>
+                    <a href="{% url 'register' %}" class="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white bg-sky-600 hover:bg-sky-500 shadow-md shadow-sky-600/20 hover:shadow-lg transition-all duration-200">
+                        {% trans "Register Free" %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Hero Section -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 sm:pt-16 pb-20 flex-grow flex items-center">
+        <div class="grid lg:grid-cols-12 gap-12 items-center w-full">
+            <!-- Left Hero Content -->
+            <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
+                <!-- Badges -->
+                <div class="flex flex-wrap items-center justify-center lg:justify-start gap-2.5">
+                    <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-sky-50 dark:bg-sky-950/80 text-sky-700 dark:text-sky-300 border border-sky-200/80 dark:border-sky-800/80">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+                        </span>
+                        Next-Gen Clinical Management
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                        <i class="fas fa-server text-sky-500"></i>
+                        <span>Self-Hostable CMS</span>
+                    </span>
+                </div>
+
+                <!-- Headline -->
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white tracking-tight leading-[1.12]">
+                    Intelligent Healthcare <br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 via-cyan-500 to-indigo-600">
+                        Made Simple & Modern
+                    </span>
+                </h1>
+
+                <!-- Subtitle -->
+                <p class="text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto lg:mx-0 font-medium leading-relaxed">
+                    Elevate your medical practice with real-time patient charts, bilingual Arabic & English digital prescriptions, automated appointments, and assistant workflows with 100% data sovereignty.
+                </p>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-2">
+                    <a href="{% url 'register' %}" class="w-full sm:w-auto px-8 py-3.5 rounded-2xl text-sm font-bold text-white bg-sky-600 hover:bg-sky-500 shadow-xl shadow-sky-600/30 hover:shadow-sky-600/40 hover:-translate-y-0.5 transition-all text-center">
+                        <i class="fas fa-stethoscope mr-2"></i>{% trans "Get Started Free" %}
+                    </a>
+                    <a href="{% url 'demo_login' %}" class="w-full sm:w-auto px-8 py-3.5 rounded-2xl text-sm font-bold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-all text-center">
+                        <i class="fas fa-bolt text-amber-500 mr-2"></i>{% trans "Explore Live Demo" %}
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right Visual Interactive Card -->
+            <div class="lg:col-span-5 relative">
+                <div class="relative mx-auto max-w-md lg:max-w-none">
+                    <div class="absolute -inset-2 bg-gradient-to-r from-sky-500 to-indigo-600 rounded-3xl blur-2xl opacity-25 dark:opacity-35 pointer-events-none"></div>
+                    <div class="relative rounded-3xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8 shadow-2xl space-y-6">
+                        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-2xl bg-sky-500/10 text-sky-600 flex items-center justify-center font-bold text-lg">
+                                    <i class="fas fa-heart-pulse"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-sm text-slate-900 dark:text-white">CMS Suite Live</h3>
+                                    <p class="text-[11px] text-slate-400">Clinical Management Active</p>
+                                </div>
+                            </div>
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                Operational
+                            </span>
+                        </div>
+
+                        <!-- Mini Highlights -->
+                        <div class="space-y-2.5 text-xs">
+                            <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/50">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas fa-user-shield text-emerald-500"></i>
+                                    <span class="font-semibold text-slate-700 dark:text-slate-200">Patient Data Ownership</span>
+                                </div>
+                                <span class="font-bold text-emerald-600">100% Private</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/50">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas fa-file-prescription text-sky-500"></i>
+                                    <span class="font-semibold text-slate-700 dark:text-slate-200">Bilingual Rx & PDF Engine</span>
+                                </div>
+                                <span class="font-bold text-sky-600">Active</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/50">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas fa-calendar-check text-indigo-500"></i>
+                                    <span class="font-semibold text-slate-700 dark:text-slate-200">Doctor-Assistant Sync</span>
+                                </div>
+                                <span class="font-bold text-indigo-600">Real-time</span>
+                            </div>
+                        </div>
+
+                        <div class="pt-2 text-center text-[11px] text-slate-400 flex items-center justify-center gap-1.5">
+                            <i class="fas fa-lock text-emerald-500"></i>
+                            <span>HIPAA-aligned self-hosted architecture with zero telemetry</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- React Live Stats Section -->
+    <section class="py-16 bg-white dark:bg-slate-900 border-y border-slate-200/80 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-2xl mx-auto mb-10">
+                <span class="text-[11px] font-extrabold uppercase tracking-widest text-sky-600 dark:text-sky-400">
+                    Live Telemetry
+                </span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1.5">
+                    Platform Growth & Activity
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-500 mt-1">
+                    Real-time metrics synced from the connected clinic database
+                </p>
+            </div>
+
+            <!-- React Live Stats Mount -->
+            <div id="react-live-stats"></div>
+        </div>
+    </section>
+
+    <!-- React Interactive Features Showcase -->
+    <section class="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center max-w-2xl mx-auto mb-12">
+            <span class="text-[11px] font-extrabold uppercase tracking-widest text-sky-600 dark:text-sky-400">
+                Tailored Workflows
+            </span>
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-1.5">
+                Built for Every Member of Your Clinic
+            </h2>
+        </div>
+
+        <!-- React Interactive Features Mount -->
+        <div id="react-interactive-features"></div>
+    </section>
+
+    <!-- Bento Grid of Core Capabilities -->
+    <section class="py-16 bg-slate-100/60 dark:bg-slate-900/50 border-t border-slate-200/80 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-2xl mx-auto mb-14">
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+                    Engineered for Clinical Precision
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-500 mt-1">
+                    Every tool a doctor or assistant needs for an organized medical center.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Card 1 -->
+                <div class="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all">
+                    <div class="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-600 flex items-center justify-center text-xl mb-5">
+                        <i class="fas fa-share-nodes"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Expiring Share Links</h3>
+                    <p class="mt-2 text-xs sm:text-sm text-slate-500 leading-relaxed">
+                        Generate secure, time-limited web links for patients to view and download their prescriptions without requiring login credentials.
+                    </p>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-xl mb-5">
+                        <i class="fas fa-language"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Arabic & English Support</h3>
+                    <p class="mt-2 text-xs sm:text-sm text-slate-500 leading-relaxed">
+                        Native RTL support for Arabic clinical notes alongside standard English medical terminology in prescription printing and PDF exports.
+                    </p>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center text-xl mb-5">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Dynamic Slot Booking</h3>
+                    <p class="mt-2 text-xs sm:text-sm text-slate-500 leading-relaxed">
+                        Automatic slot calculation based on physician working hours, break schedules, and existing appointment collisions.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bottom CTA Banner -->
+    <section class="py-16 bg-gradient-to-r from-sky-600 via-sky-500 to-indigo-600 text-white relative overflow-hidden">
+        <div class="max-w-4xl mx-auto px-4 text-center relative z-10 space-y-6">
+            <h2 class="text-3xl sm:text-4xl font-black tracking-tight">
+                Empower Your Clinic Today
+            </h2>
+            <p class="text-sm sm:text-base text-sky-100 max-w-xl mx-auto">
+                No monthly recurring subscription fees. Completely open source and self-hostable on your own server.
+            </p>
+            <div class="flex flex-wrap justify-center gap-3 pt-2">
+                <a href="{% url 'register' %}" class="px-8 py-3.5 rounded-2xl bg-white text-sky-700 font-bold text-sm shadow-xl hover:bg-sky-50 hover:scale-105 transition-all">
+                    Create Clinic Account
+                </a>
+                <a href="{% url 'demo_login' %}" class="px-8 py-3.5 rounded-2xl bg-sky-700/70 hover:bg-sky-700 text-white border border-white/30 font-bold text-sm backdrop-blur-md transition-all">
+                    Test Demo Mode
+                </a>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

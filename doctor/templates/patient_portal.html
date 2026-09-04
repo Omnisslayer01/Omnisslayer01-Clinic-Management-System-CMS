@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static i18n %}
+
+{% block title %}CMS Patient Portal - {{ patient.name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans transition-colors duration-200 py-8 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-xl mx-auto space-y-6">
+    
+    <!-- Clinic Brand Header -->
+    <div class="text-center space-y-2">
+      <div class="w-14 h-14 mx-auto rounded-2xl overflow-hidden shadow-md shadow-sky-500/25 border border-sky-200 dark:border-sky-800">
+        <img src="{% static 'cms_logo.png' %}" alt="CMS Logo" class="w-full h-full object-cover">
+      </div>
+      <h1 class="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">CMS Patient Portal</h1>
+      <p class="text-xs text-slate-500 dark:text-slate-400">Clinic Management System &bull; Digital Health Pass</p>
+    </div>
+
+    <!-- Patient Identifier Card -->
+    <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl flex items-center justify-between">
+      <div>
+        <span class="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400">Patient Profile</span>
+        <h2 class="text-base font-black text-slate-900 dark:text-white mt-0.5">{{ patient.name }}</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400">{{ patient.phone_number }} · Gender: {{ patient.gender }}</p>
+      </div>
+      <div class="w-12 h-12 rounded-2xl bg-sky-50 dark:bg-sky-950 text-sky-600 flex items-center justify-center text-lg font-bold border border-sky-100 dark:border-sky-900">
+        {{ patient.name|slice:":1" }}
+      </div>
+    </div>
+
+    <!-- Digital Pharmacy QR Pass -->
+    <div class="p-6 rounded-3xl bg-gradient-to-br from-slate-900 to-sky-950 text-white shadow-2xl space-y-4 text-center relative overflow-hidden">
+      <div class="absolute -top-12 -right-12 w-36 h-36 bg-sky-500/20 rounded-full blur-2xl"></div>
+      
+      <div class="flex items-center justify-between pb-3 border-b border-white/10 text-xs">
+        <span class="font-bold uppercase tracking-widest text-sky-400">Pharmacy Digital Pass</span>
+        <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">VERIFIED</span>
+      </div>
+
+      <!-- QR Representation -->
+      <div class="py-2 flex flex-col items-center justify-center">
+        <div class="p-3 bg-white rounded-2xl shadow-lg">
+          <!-- Stylized QR SVG representation -->
+          <svg width="130" height="130" viewBox="0 0 100 100" fill="#0f172a" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="100" fill="white"/>
+            <rect x="10" y="10" width="25" height="25" fill="#0284c7"/>
+            <rect x="15" y="15" width="15" height="15" fill="white"/>
+            <rect x="18" y="18" width="9" height="9" fill="#0284c7"/>
+            <rect x="65" y="10" width="25" height="25" fill="#0284c7"/>
+            <rect x="70" y="15" width="15" height="15" fill="white"/>
+            <rect x="73" y="18" width="9" height="9" fill="#0284c7"/>
+            <rect x="10" y="65" width="25" height="25" fill="#0284c7"/>
+            <rect x="15" y="70" width="15" height="15" fill="white"/>
+            <rect x="18" y="73" width="9" height="9" fill="#0284c7"/>
+            <rect x="42" y="15" width="6" height="20" fill="#0f172a"/>
+            <rect x="52" y="25" width="6" height="15" fill="#0f172a"/>
+            <rect x="42" y="45" width="16" height="16" fill="#0284c7"/>
+            <rect x="65" y="45" width="10" height="10" fill="#0f172a"/>
+            <rect x="80" y="45" width="10" height="25" fill="#0f172a"/>
+            <rect x="42" y="68" width="12" height="12" fill="#0f172a"/>
+            <rect x="60" y="70" width="25" height="8" fill="#0f172a"/>
+            <rect x="70" y="82" width="15" height="8" fill="#0f172a"/>
+          </svg>
+        </div>
+        <p class="text-[11px] text-white/70 font-mono mt-3">Pass ID: {{ qr_data }}</p>
+      </div>
+
+      <p class="text-[11px] text-white/80 leading-relaxed">
+        Present this token at any licensed pharmacy or clinic dispensing counter to fulfill your prescription.
+      </p>
+    </div>
+
+    <!-- Active Prescription Details -->
+    {% if medical_record and medical_record.prescription %}
+      <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+          <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+            <i class="fas fa-prescription text-sky-500"></i>
+            <span>Active Prescription</span>
+          </h3>
+          <span class="text-[11px] text-slate-400">{{ medical_record.date|date:"M d, Y" }}</span>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 font-mono text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
+          {{ medical_record.prescription|safe }}
+        </div>
+
+        <div>
+          <a href="{% url 'generate_prescription_pdf' medical_record.id %}" target="_blank" class="w-full py-3 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-md shadow-sky-500/20 flex items-center justify-center gap-2 transition-all">
+            <i class="fas fa-download"></i>
+            <span>Download Official PDF Prescription</span>
+          </a>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Live Lab Order Ticket Progress Tracker -->
+    {% if lab_tickets %}
+      <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+          <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+            <i class="fas fa-vial-virus text-indigo-500"></i>
+            <span>Laboratory Diagnostics Tracker</span>
+          </h3>
+        </div>
+
+        {% for lt in lab_tickets %}
+          <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-bold text-slate-900 dark:text-white">{{ lt.test_name }}</h4>
+                <p class="text-[10px] text-slate-400 font-mono">#{{ lt.ticket_id }}</p>
+              </div>
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                lt.status == 'Completed' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300'
+              }">
+                {{ lt.status }}
+              </span>
+            </div>
+
+            <!-- Visual Progress Bar -->
+            <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+              <div class="bg-gradient-to-r from-sky-500 to-indigo-600 h-full rounded-full transition-all duration-500 ${
+                lt.status == 'Completed' ? 'w-full' : lt.status == 'Processing' ? 'w-3/4' : lt.status == 'Sample Pending' ? 'w-1/2' : 'w-1/4'
+              }"></div>
+            </div>
+
+            {% if lt.status == 'Completed' and lt.result_summary %}
+              <div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-900 dark:text-emerald-200 font-mono">
+                {{ lt.result_summary }}
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- Footer Note -->
+    <div class="text-center text-[11px] text-slate-400 pt-4">
+      <p>CMS · Clinic Management System</p>
+      <p class="mt-1">In medical emergencies, please dial emergency services immediately.</p>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

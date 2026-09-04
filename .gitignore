@@ -1,0 +1,18 @@
+.env
+imhotep-tasks-twa/
+__pycache__/
+clinic_logos/
+
+# electron_app in the future
+dist/
+node_modules/
+
+imhotep_clinic.db
+db.sqlite3
+database_*.db
+*.log
+
+.conda/
+.venv/
+venv/
+*.pyc

@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}Doctor Profile & Clinic Settings - CMS{% endblock %}
+
+{% block content %}
+<div class="flex min-h-screen bg-slate-50 dark:bg-slate-950 font-sans transition-colors duration-200">
+    <!-- Include navigation -->
+    {% include "nav.html" %}
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        <!-- React Top Header Mount -->
+        <div id="react-top-header" class="sticky top-0 z-20"></div>
+
+        <main class="flex-1 p-4 md:p-8 space-y-6 max-w-5xl w-full mx-auto">
+            <!-- Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{% trans "Practice Settings" %}</h1>
+                    <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">{% trans "Manage your clinical identity, branding, and consultation schedules" %}</p>
+                </div>
+                <a href="{% url 'doctor_dashboard' %}" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Dashboard</span>
+                </a>
+            </div>
+
+            <!-- Clinic Logo & Branding -->
+            <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm p-6 md:p-8">
+                <div class="flex items-center gap-3 pb-4 mb-6 border-b border-slate-200 dark:border-slate-800">
+                    <div class="w-9 h-9 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center text-sm border border-sky-100 dark:border-sky-900/50">
+                        <i class="fas fa-image"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 dark:text-white">{% trans "Clinic Brand & Logo" %}</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Displayed on shared prescriptions, PDF exports, and clinic headers</p>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col md:flex-row items-start md:items-center gap-6">
+                    <!-- Current Logo Display -->
+                    <div class="w-36 h-36 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center p-3 overflow-hidden shrink-0 shadow-inner">
+                        {% if doctor_profile.logo_path %}
+                            <img src="{{ MEDIA_URL }}{{ doctor_profile.logo_path }}" alt="Clinic Logo" class="max-w-full max-h-full object-contain">
+                        {% else %}
+                            <div class="text-center text-slate-400">
+                                <i class="fas fa-hospital text-3xl mb-1 opacity-50"></i>
+                                <p class="text-[10px] font-semibold">No Logo</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex-1 w-full">
+                        <form method="POST" action="{% url 'upload_clinic_logo' %}" enctype="multipart/form-data" class="space-y-4">
+                            {% csrf_token %}
+                            <div>
+                                <label for="clinic_logo" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">{% trans "Upload New Logo" %}</label>
+                                <input type="file" name="clinic_logo" id="clinic_logo" accept="image/jpeg,image/png,image/gif" 
+                                       class="block w-full text-xs text-slate-500 dark:text-slate-400
+                                              file:mr-4 file:py-2.5 file:px-4
+                                              file:rounded-xl file:border-0
+                                              file:text-xs file:font-semibold
+                                              file:bg-sky-50 dark:file:bg-sky-950/60 file:text-sky-700 dark:file:text-sky-300
+                                              hover:file:bg-sky-100 dark:hover:file:bg-sky-900/50 cursor-pointer">
+                                <p class="mt-2 text-[11px] text-slate-400">{% trans "Maximum size: 500KB. Recommended dimensions: 300x300px (PNG, JPEG)." %}</p>
+                            </div>
+                            
+                            <div class="flex items-center gap-3 pt-2">
+                                <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-md shadow-sky-500/20 transition-all">
+                                    <i class="fas fa-cloud-arrow-up"></i>
+                                    <span>{% trans "Upload Logo" %}</span>
+                                </button>
+                                
+                                {% if doctor_profile.logo_path %}
+                                <button type="button" onclick="confirmRemoveLogo()" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 text-rose-600 dark:text-rose-400 text-xs font-semibold transition-colors">
+                                    <i class="fas fa-trash"></i>
+                                    <span>{% trans "Remove Logo" %}</span>
+                                </button>
+                                
+                                <script>
+                                    function confirmRemoveLogo() {
+                                        if (confirm("Are you sure you want to remove your clinic logo?")) {
+                                            window.location.href = "{% url 'remove_clinic_logo' %}";
+                                        }
+                                    }
+                                </script>
+                                {% endif %}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Professional Specialization -->
+            <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm p-6 md:p-8">
+                <div class="flex items-center gap-3 pb-4 mb-6 border-b border-slate-200 dark:border-slate-800">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-sm border border-indigo-100 dark:border-indigo-900/50">
+                        <i class="fas fa-user-md"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 dark:text-white">{% trans "Professional Specialization" %}</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Your clinical domain and title</p>
+                    </div>
+                </div>
+                
+                <form method="POST" action="{% url 'update_doctor_profile' %}" class="space-y-4">
+                    {% csrf_token %}
+                    <div>
+                        <label for="specialization" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">{% trans "Medical Specialization" %}</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                <i class="fas fa-stethoscope text-xs"></i>
+                            </span>
+                            <input type="text" name="specialization" id="specialization" value="{{ doctor_profile.specialization }}" class="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all" placeholder="e.g. Cardiology, Internal Medicine, Pediatrics" required>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end pt-2">
+                        <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-md shadow-sky-500/20 transition-all">
+                            <i class="fas fa-check"></i>
+                            <span>{% trans "Save Specialization" %}</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Appointment Schedules Management -->
+            <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm p-6 md:p-8">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 mb-6 border-b border-slate-200 dark:border-slate-800 gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-sm border border-emerald-100 dark:border-emerald-900/50">
+                            <i class="fas fa-calendar-days"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-base font-bold text-slate-900 dark:text-white">{% trans "Appointment Availability Schedules" %}</h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Define working hours and appointment slots</p>
+                        </div>
+                    </div>
+                    <a href="{% url 'set_appointment_times' %}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold shadow-md shadow-sky-500/20 transition-all">
+                        <i class="fas fa-plus"></i>
+                        <span>{% trans "Add Schedule Window" %}</span>
+                    </a>
+                </div>
+                
+                {% if doctor_profile.appointmenttimes_set.all %}
+                    <!-- Large screen table view -->
+                    <div class="hidden md:block overflow-hidden rounded-xl border border-slate-200/80 dark:border-slate-800">
+                        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-left">
+                            <thead class="bg-slate-50 dark:bg-slate-800/60 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                                <tr>
+                                    <th scope="col" class="px-5 py-3">{% trans "Day" %}</th>
+                                    <th scope="col" class="px-5 py-3">{% trans "Time Range" %}</th>
+                                    <th scope="col" class="px-5 py-3">{% trans "Slot Duration" %}</th>
+                                    <th scope="col" class="px-5 py-3">{% trans "Status" %}</th>
+                                    <th scope="col" class="px-5 py-3 text-right">{% trans "Actions" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-slate-900 text-xs">
+                                {% for schedule in page_obj %}
+                                <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                                    <td class="px-5 py-3.5 whitespace-nowrap">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 font-bold flex items-center justify-center text-xs border border-sky-100 dark:border-sky-900/50">
+                                                {{ schedule.day_of_the_week|slice:":2"|upper }}
+                                            </div>
+                                            <span class="font-bold text-slate-900 dark:text-white">{{ schedule.day_of_the_week }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-3.5 whitespace-nowrap text-slate-600 dark:text-slate-300 font-medium">
+                                        <i class="far fa-clock text-slate-400 mr-1.5"></i>
+                                        {{ schedule.start_time|time:"g:i A" }} &ndash; {{ schedule.end_time|time:"g:i A" }}
+                                    </td>
+                                    <td class="px-5 py-3.5 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                            {{ schedule.separation_time }}
+                                        </span>
+                                    </td>
+                                    <td class="px-5 py-3.5 whitespace-nowrap">
+                                        {% if schedule.activated_status %}
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            {% trans "Active" %}
+                                        </span>
+                                        {% else %}
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                            {% trans "Inactive" %}
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-5 py-3.5 whitespace-nowrap text-right space-x-2">
+                                        <a href="{% url 'update_appointment_times' %}?appointment_id={{ schedule.id }}" class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold text-sky-600 hover:text-sky-700 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/60 transition-colors">
+                                            <i class="fas fa-pen-to-square mr-1"></i>
+                                            {% trans "Edit" %}
+                                        </a>
+                                        <form method="POST" action="{% url 'deactivate_appointment_times' %}?appointment_id={{ schedule.id }}" class="inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold {% if schedule.activated_status %}text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/60{% else %}text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/60{% endif %} transition-colors">
+                                                {% if schedule.activated_status %}
+                                                    <i class="fas fa-pause mr-1"></i>{% trans "Pause" %}
+                                                {% else %}
+                                                    <i class="fas fa-play mr-1"></i>{% trans "Resume" %}
+                                                {% endif %}
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        
+                        <!-- Pagination -->
+                        {% if page_obj.has_other_pages %}
+                        <div class="px-5 py-3 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+                            <span class="text-slate-500">
+                                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} ({{ page_obj.paginator.count }} schedules)
+                            </span>
+                            <div class="flex items-center gap-1">
+                                {% if page_obj.has_previous %}
+                                <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-50">Previous</a>
+                                {% endif %}
+                                {% if page_obj.has_next %}
+                                <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-50">Next</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Mobile card view -->
+                    <div class="md:hidden space-y-3">
+                        {% for schedule in page_obj %}
+                            <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 font-bold flex items-center justify-center text-xs">
+                                            {{ schedule.day_of_the_week|slice:":2"|upper }}
+                                        </div>
+                                        <span class="text-xs font-bold text-slate-900 dark:text-white">{{ schedule.day_of_the_week }}</span>
+                                    </div>
+                                    {% if schedule.activated_status %}
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300">Active</span>
+                                    {% else %}
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">Inactive</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-xs text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                                    <span>{{ schedule.start_time|time:"g:i A" }} &ndash; {{ schedule.end_time|time:"g:i A" }}</span>
+                                    <span class="font-semibold">{{ schedule.separation_time }}</span>
+                                </div>
+                                <div class="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                                    <a href="{% url 'update_appointment_times' %}?appointment_id={{ schedule.id }}" class="flex-1 text-center py-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 text-xs font-semibold">{% trans "Edit" %}</a>
+                                    <form method="POST" action="{% url 'deactivate_appointment_times' %}?appointment_id={{ schedule.id }}" class="flex-1">
+                                        {% csrf_token %}
+                                        <button type="submit" class="w-full py-1.5 rounded-lg text-xs font-semibold {% if schedule.activated_status %}bg-rose-50 dark:bg-rose-950/60 text-rose-600{% else %}bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600{% endif %}">
+                                            {% if schedule.activated_status %}{% trans "Pause" %}{% else %}{% trans "Resume" %}{% endif %}
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="rounded-xl p-8 text-center bg-slate-50 dark:bg-slate-800/40 border-2 border-dashed border-slate-200 dark:border-slate-700">
+                        <i class="far fa-calendar-times text-3xl text-slate-400 mb-2"></i>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white">{% trans "No appointment schedules found" %}</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">Create schedule windows for the days you accept patient bookings.</p>
+                        <div class="mt-4">
+                            <a href="{% url 'set_appointment_times' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 shadow-sm transition-colors">
+                                <i class="fas fa-plus"></i>
+                                <span>{% trans "Create First Schedule" %}</span>
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Personal Account Information -->
+            <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm p-6 md:p-8">
+                <div class="flex items-center gap-3 pb-4 mb-6 border-b border-slate-200 dark:border-slate-800">
+                    <div class="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center text-sm border border-purple-100 dark:border-purple-900/50">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 dark:text-white">{% trans "Personal Identity" %}</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Account names, username, and verified email</p>
+                    </div>
+                </div>
+                
+                <form method="POST" action="{% url 'update_profile' %}" class="space-y-6">
+                    {% csrf_token %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- First Name Field -->
+                        <div>
+                            <label for="first_name" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">{% trans "First Name" %}</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fas fa-user text-xs"></i>
+                                </span>
+                                <input type="text" name="first_name" id="first_name" value="{{ user_data.first_name }}" class="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all" placeholder="First name">
+                            </div>
+                        </div>
+                        
+                        <!-- Last Name Field -->
+                        <div>
+                            <label for="last_name" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">{% trans "Last Name" %}</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fas fa-user text-xs"></i>
+                                </span>
+                                <input type="text" name="last_name" id="last_name" value="{{ user_data.last_name }}" class="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all" placeholder="Last name">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- Username Field -->
+                        <div>
+                            <label for="username" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">{% trans "Username" %}</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fas fa-at text-xs"></i>
+                                </span>
+                                <input type="text" name="username" id="username" value="{{ user_data.username }}" class="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all" placeholder="Username">
+                            </div>
+                        </div>
+                        
+                        <!-- Email Field -->
+                        <div>
+                            <label for="email" class="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">{% trans "Email Address" %}</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fas fa-envelope text-xs"></i>
+                                </span>
+                                <input type="email" name="email" id="email" value="{{ user_data.email }}" class="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all" placeholder="Email address">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <div class="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-md shadow-sky-500/20 transition-all">
+                            <i class="fas fa-check"></i>
+                            <span>{% trans "Update Personal Information" %}</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Password Management Section -->
+            <div class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm p-6 md:p-8">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-sm border border-amber-100 dark:border-amber-900/50">
+                            <i class="fas fa-shield-halved"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-white">{% trans "Password & Authentication" %}</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">{% trans "Update your clinical portal master key and credentials" %}</p>
+                        </div>
+                    </div>
+                    <a href="{% url 'password_change' %}" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors">
+                        <i class="fas fa-key text-xs"></i>
+                        <span>{% trans "Change Password" %}</span>
+                    </a>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.mountReactComponent && (window.CmsTopHeader || window.ImhotepTopHeader)) {
+        window.mountReactComponent((window.CmsTopHeader || window.ImhotepTopHeader), 'react-top-header', {
+            title: 'Clinic Settings',
+            subtitle: 'Dr. {{ user.get_full_name|escapejs }}',
+            userName: 'Dr. {{ user.first_name|default:user.username|escapejs }}',
+            userRole: 'Doctor'
+        });
+    }
+});
+</script>
+{% endblock %}

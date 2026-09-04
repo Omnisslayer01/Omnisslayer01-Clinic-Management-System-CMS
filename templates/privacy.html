@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}Privacy Policy - CMS{% endblock %}
+{% block meta_description %}Privacy policy for CMS - learn how we collect, use and protect your personal and medical information.{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans py-12 md:py-16 transition-colors duration-200">
+    <div class="max-w-4xl mx-auto px-4 md:px-8">
+        <!-- Header -->
+        <div class="text-center mb-10 space-y-2">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider">
+                <i class="fas fa-shield-halved text-xs"></i>
+                <span>HIPAA & Data Protection</span>
+            </div>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">{% trans "Privacy & Data Policy" %}</h1>
+            <p class="text-xs text-slate-400 dark:text-slate-500">Clinical Data Security Standard &bull; Last updated: {% now "F j, Y" %}</p>
+        </div>
+        
+        <!-- Content Card -->
+        <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm p-6 md:p-10 space-y-8 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            <section class="space-y-3">
+                <h2 class="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px]">1</span>
+                    <span>{% trans "Introduction" %}</span>
+                </h2>
+                <p>{% trans "At CMS, we take clinical confidentiality and patient data security with paramount rigor. This Privacy Policy outlines our procedures regarding collection, storage, and access authorization across the clinic management workspace." %}</p>
+            </section>
+
+            <section class="space-y-3">
+                <h2 class="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px]">2</span>
+                    <span>{% trans "Information Governance" %}</span>
+                </h2>
+                <p>{% trans "We collect patient identifiers, appointment schedules, and encrypted clinical records submitted directly by certified practitioners:" %}</p>
+                <ul class="list-disc pl-5 space-y-1 text-slate-600 dark:text-slate-400">
+                    <li>Demographic information: Full legal name, date of birth, contact phone number</li>
+                    <li>Clinical encounters: Diagnostic evaluations, prescribed pharmacotherapy, doctor observations</li>
+                    <li>Audit trails: Access timestamps, staff credentials, and appointment tracking</li>
+                </ul>
+            </section>
+
+            <section class="space-y-3">
+                <h2 class="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px]">3</span>
+                    <span>{% trans "Prescription Share Security" %}</span>
+                </h2>
+                <p>{% trans "Digital prescriptions shared via public tokens are protected by cryptographically random UUID tokens, customizable expiration timestamps (1 hour to 7 days), and can be revoked by the doctor at any moment." %}</p>
+            </section>
+
+            <section class="space-y-3">
+                <h2 class="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px]">4</span>
+                    <span>{% trans "Data Inquiries & Compliance" %}</span>
+                </h2>
+                <p>{% trans "For inquiries concerning protected medical records or data portability, contact privacy@clinicmanagementsystem.com." %}</p>
+            </section>
+        </div>
+        
+        <!-- Return button -->
+        <div class="mt-8 text-center">
+            <a href="javascript:history.back()" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm transition-colors">
+                <i class="fas fa-arrow-left"></i>
+                <span>Return to Previous Page</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
