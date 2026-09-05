@@ -1,24 +1,18 @@
-const CACHE_NAME = 'cms-clinic-v1';
+const CACHE_NAME = 'cms-clinic-v2';
 const OFFLINE_URL = '/offline.html';
 
 // Assets to cache immediately
 const PRECACHE_ASSETS = [
   '/',
   '/offline.html',
-  '/static/css/styles.css',
+  '/static/styles.css',
   '/static/main.js',
   '/static/js/register-sw.js',
   '/static/cms_logo.png',
   '/static/imhotep_clinic.png',
   '/static/manifest.json',
-  '/static/icons/placeholder.png',
-  // Pre-cache important HTML pages for offline access
-  '/login/',
-  '/register/',
-  '/doctor/dashboard/',
   '/privacy/',
   '/terms/',
-  // Add more key pages as needed
 ];
 
 // Install event
@@ -115,7 +109,7 @@ self.addEventListener('fetch', event => {
           }
           // For image requests, return a placeholder
           if (event.request.destination === 'image') {
-            return caches.match('/static/icons/placeholder.png');
+            return caches.match('/static/cms_logo.png');
           }
           return new Response('', {
             status: 408,

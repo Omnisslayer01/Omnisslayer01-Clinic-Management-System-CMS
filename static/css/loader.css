@@ -1,29 +1,47 @@
-/* Fullscreen overlay */
-#page-loader {
+/* Modern Asynchronous Top Loading Bar (YouTube / GitHub / NProgress Style) */
+#top-progress-bar {
   position: fixed;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(1px);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #0284c7 0%, #38bdf8 50%, #0ea5e9 100%);
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.85), 0 0 4px rgba(2, 132, 199, 0.6);
+  transform-origin: left center;
+  transform: scaleX(0);
+  opacity: 0;
+  transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.3s ease;
+  z-index: 99999;
+  pointer-events: none;
+  will-change: transform, opacity;
 }
 
-#page-loader.show {
-  display: flex;
+#top-progress-bar.active {
+  opacity: 1;
 }
 
-/* Spinner */
-#page-loader .spinner {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  border: 4px solid #cfd8dc;
-  border-top-color: #0d6efd; /* primary */
-  animation: spin 0.9s linear infinite;
+/* Glowing leading edge tip */
+#top-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 80px;
+  height: 3px;
+  box-shadow: 0 0 14px #38bdf8, 0 0 8px #0284c7;
+  opacity: 0.9;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+/* Cross-Document View Transitions for modern browsers (smooth MPA cross-fade) */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
 }
+
+/* Legacy fallback: if any legacy script references #page-loader, make it completely non-intrusive */
+#page-loader {
+  display: none !important;
+  pointer-events: none !important;
+}
+
