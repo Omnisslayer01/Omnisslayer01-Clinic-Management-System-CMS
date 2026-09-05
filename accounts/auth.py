@@ -1,4 +1,7 @@
 #all of the auth related function
+import logging
+import urllib.parse
+import requests
 from django.shortcuts import render, redirect
 from .models import User
 from django.contrib import messages
@@ -14,12 +17,24 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.tokens import default_token_generator
 from django.http import HttpResponse
 from django.contrib.auth.forms import PasswordResetForm, SetPasswordForm
-import requests
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.utils.translation import gettext_lazy as _
-from cms.settings import SITE_DOMAIN
-from doctor.models import DoctorProfile
+from doctor.models import DoctorProfile, Clinic
+
+logger = logging.getLogger(__name__)
+
+def _redirect_after_login(request, user):
+    """Safely redirects an authenticated user based on their role."""
+    if hasattr(user, 'is_doctor') and user.is_doctor():
+        return redirect("doctor_dashboard")
+    if hasattr(user, 'is_assistant') and user.is_assistant():
+        return redirect("assistant_dashboard")
+    if hasattr(user, 'is_clinic_admin') and (user.is_clinic_admin() or user.is_super_admin() or user.is_staff or user.is_superuser):
+        return redirect("/admin/")
+    if getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False):
+        return redirect("/admin/")
+    return redirect("landing_page")
 
 def _send_verification_email(user, email_address=None):
     """Safely send verification email without crashing on SMTP failures."""
@@ -28,69 +43,79 @@ def _send_verification_email(user, email_address=None):
         return False
     try:
         mail_subject = 'Activate your account.'
-        current_site = SITE_DOMAIN.rstrip('/')  # Remove trailing slash if present
+        site_domain = getattr(settings, 'SITE_DOMAIN', 'http://localhost:8000').rstrip('/')
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        activation_path = reverse('activate', kwargs={'uidb64': uid, 'token': token})
+        full_activation_url = f"{site_domain}{activation_path}"
+        logger.info(f"Generated activation link for {user.username} ({recipient}): {full_activation_url}")
+
         message = render_to_string('activate_mail_send.html', {
             'user': user,
-            'domain': current_site,
-            'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-            'token': default_token_generator.make_token(user),
+            'domain': site_domain,
+            'uid': uid,
+            'token': token,
         })
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None) or 'webmaster@localhost'
         send_mail(mail_subject, message, from_email, [recipient], html_message=message)
         return True
     except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning(f"SMTP dispatch failed for {recipient}: {e}")
+        logger.warning(f"SMTP dispatch failed for {recipient}: {e}")
         return False
 
 #the register route
 def register(request):
-
     if request.user.is_authenticated:
-        if request.user.is_doctor():
-            return redirect("doctor_dashboard")
-        
-        if request.user.is_assistant():
-            return redirect("assistant_dashboard")
+        return _redirect_after_login(request, request.user)
 
     if request.method == "POST":
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-        user_type = request.POST.get('user_type')
-        first_name = request.POST.get('first_name')
-        last_name = request.POST.get('last_name')
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip().lower()
+        password = request.POST.get('password', '')
+        user_type = request.POST.get('user_type', 'doctor')
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        specialization = request.POST.get('specialization', '').strip()
 
         if user_type not in ['doctor', 'patient']:
-            messages.error(request, _("Please select a valid user type."))
-            return render(request, "register.html")
+            user_type = 'doctor'
 
         # Check if username contains '@'
+        if not username:
+            messages.error(request, _("Username is required."))
+            return render(request, "register.html")
+
         if '@' in username:
-            messages.error(request, "Username can't include @")
+            messages.error(request, _("Username cannot include @"))
             return render(request, "register.html")
 
         # Check if email contains '@'
-        if not '@' in email:
-            messages.error(request, _("Email must include @!"))
+        if not email or '@' not in email:
+            messages.error(request, _("Please provide a valid email address."))
             return render(request, "register.html")
 
-        # Check if username already exists
-        if User.objects.filter(username=username).exists():
+        if len(password) < 8:
+            messages.error(request, _("Password must be at least 8 characters long."))
+            return render(request, "register.html")
+
+        # Check if username already exists (case-insensitive)
+        if User.objects.filter(username__iexact=username).exists():
             messages.error(request, _('Username already taken, please choose another one!'))
             return render(request, "register.html")
 
-        # Check if email already exists
-        if User.objects.filter(email=email).exists():
-            messages.error(request, _('Email already taken, please choose another one or login!'))
+        # Check if email already exists (case-insensitive)
+        if User.objects.filter(email__iexact=email).exists():
+            messages.error(request, _('Email already registered, please choose another one or login!'))
             return render(request, "register.html")
+
+        require_verification = getattr(settings, 'REQUIRE_EMAIL_VERIFICATION', False)
 
         # Create a new user
         user = User.objects.create_user(
             username=username,
             email=email,
             password=password,
-            email_verify=False,
+            email_verify=not require_verification,
             user_type=user_type,
             first_name=first_name,
             last_name=last_name
@@ -98,25 +123,31 @@ def register(request):
         user.save()
 
         if user_type == 'doctor':
-            from doctor.models import DoctorProfile, Clinic
-            specialization = request.POST.get('specialization')
             if not specialization:
-                messages.error(request, _('Specialization is required for doctors.'))
-                user.delete()  # Clean up the created user
-                return render(request, "register.html")
-            specialization = request.POST.get('specialization', '')
+                specialization = 'General Practice'
+            clinic_name = f"Dr. {user.get_full_name() or user.username}'s Clinic"
+            clinic, _created = Clinic.objects.get_or_create(name=clinic_name)
             DoctorProfile.objects.create(
                 user=user,
-                specialization=specialization
+                specialization=specialization,
+                clinic=clinic
             )
-        
+
         # Send verification email
         email_sent = _send_verification_email(user, email)
-        if email_sent:
-            messages.success(request, _("Account created successfully! Please check your email to verify your account."))
+
+        if require_verification:
+            if email_sent:
+                messages.success(request, _("Account created successfully! Please check your email to verify your account."))
+            else:
+                messages.warning(request, _("Account created! (Verification email could not be delivered; please verify via admin or contact support)."))
+            return redirect("login")
         else:
-            messages.success(request, _("Account created successfully! (Note: Email delivery failed, you can verify via admin if needed)."))
-        return redirect("login")
+            backend = get_backends()[0]
+            user.backend = f'{backend.__module__}.{backend.__class__.__name__}'
+            login(request, user)
+            messages.success(request, _("Welcome to CMS! Your account has been created successfully."))
+            return _redirect_after_login(request, user)
 
     return render(request, "register.html")
 
@@ -126,14 +157,14 @@ def activate(request, uidb64, token):
         # Decode the user ID
         uid = force_str(urlsafe_base64_decode(uidb64))
         user = User.objects.get(pk=uid)
-    except(TypeError, ValueError, OverflowError, User.DoesNotExist):
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
         user = None
 
     # Check if the token is valid
     if user is not None and default_token_generator.check_token(user, token):
         user.is_active = True
         user.email_verify = True
-        user.save()
+        user.save(update_fields=['is_active', 'email_verify'])
 
         # Set the backend attribute on the user
         backend = get_backends()[0]
@@ -141,89 +172,53 @@ def activate(request, uidb64, token):
 
         # Log the user in
         login(request, user)
-        messages.success(request, _("Thank you for your email confirmation. Your account is activated."))
-        return redirect('login')
+        messages.success(request, _("Thank you! Your email has been confirmed and your account is active."))
+        return _redirect_after_login(request, user)
     else:
-        messages.success(request, _("Activation link is invalid!"))
+        messages.error(request, _("Activation link is invalid or has expired!"))
         return redirect('login')
 
 #the login route
 def user_login(request):
-
     if request.user.is_authenticated:
-        if request.user.is_doctor():
-            return redirect("doctor_dashboard")
-        
-        if request.user.is_assistant():
-            return redirect("assistant_dashboard")
-
-        if request.user.is_clinic_admin() or request.user.is_super_admin():
-            return redirect("/admin/")
+        return _redirect_after_login(request, request.user)
 
     if request.method == "POST":
-        user_username_mail = request.POST.get('user_username_mail')
-        password = request.POST.get('password')
+        user_username_mail = request.POST.get('user_username_mail', '').strip()
+        password = request.POST.get('password', '')
 
-        # Check if the input is a username or email
-        if '@' not in user_username_mail:
-            # Authenticate using username
-            user = authenticate(request, username=user_username_mail, password=password)
-            if user is not None:
-                if user.email_verify == True:
-                    login(request, user)
-                    messages.success(request, _("Login successful!"))
+        if not user_username_mail or not password:
+            messages.error(request, _("Please enter your username/email and password."))
+            return render(request, "login.html")
 
-                    if request.user.is_doctor():
-                        return redirect("doctor_dashboard")
-                    
-                    if request.user.is_assistant():
-                        return redirect("assistant_dashboard")
-
-                    if request.user.is_clinic_admin() or request.user.is_super_admin():
-                        return redirect("/admin/")
-                    
-                    if request.user.is_patient():
-                        return redirect("patient.dashboard")
-                else:
-                    # Send verification email safely
-                    email_sent = _send_verification_email(user)
-                    messages.error(request, _("E-mail not verified!"))
-                    if email_sent:
-                        messages.info(request, _("Please check your email to verify your account."))
-                    else:
-                        messages.warning(request, _("Unable to send verification email via SMTP. Please contact clinic admin or verify your account in the admin panel."))
-                    return redirect("login")
-            else:
-                messages.error(request, _("Invalid username or password!"))
+        # Resolve user by username or email
+        user = None
+        if '@' in user_username_mail:
+            existing_user = User.objects.filter(email__iexact=user_username_mail).first()
+            if existing_user:
+                user = authenticate(request, username=existing_user.username, password=password)
         else:
-            # Authenticate using email
-            user = User.objects.filter(email=user_username_mail).first()
-            if user:
-                username = user.username
-                user = authenticate(request, username=username, password=password)
-                if user is not None:
-                    if user.email_verify == True:
-                        login(request, user)
-                        messages.success(request, _("Login successful!"))
-                        if request.user.is_doctor():
-                            return redirect("doctor_dashboard")
-                        
-                        if request.user.is_assistant():
-                            return redirect("assistant_dashboard")
+            user = authenticate(request, username=user_username_mail, password=password)
 
-                    else:
-                        # Send verification email safely
-                        email_sent = _send_verification_email(user)
-                        messages.error(request, _("E-mail not verified!"))
-                        if email_sent:
-                            messages.info(request, _("Please check your email to verify your account."))
-                        else:
-                            messages.warning(request, _("Unable to send verification email via SMTP. Please contact clinic admin or verify your account in the admin panel."))
-                        return redirect("login")
-                else:
-                    messages.error(request, _("Invalid E-mail or password!"))
+        if user is not None:
+            require_verification = getattr(settings, 'REQUIRE_EMAIL_VERIFICATION', False)
+            if user.email_verify or not require_verification or user.is_staff or user.is_superuser:
+                if not user.email_verify:
+                    user.email_verify = True
+                    user.save(update_fields=['email_verify'])
+                login(request, user)
+                messages.success(request, _("Login successful!"))
+                return _redirect_after_login(request, user)
             else:
-                messages.error(request, _("Invalid E-mail or password!"))
+                email_sent = _send_verification_email(user)
+                messages.error(request, _("E-mail not verified!"))
+                if email_sent:
+                    messages.info(request, _("Please check your email to verify your account."))
+                else:
+                    messages.warning(request, _("Unable to send verification email via SMTP. Please contact clinic admin."))
+                return redirect("login")
+        else:
+            messages.error(request, _("Invalid username/email or password!"))
 
     return render(request, "login.html")
 
@@ -352,190 +347,234 @@ class CustomPasswordResetCompleteView(PasswordResetCompleteView):
     template_name = 'password_reset_complete.html'
 
 
-GOOGLE_CLIENT_ID = settings.SOCIALACCOUNT_PROVIDERS['google']['APP']['client_id']
-GOOGLE_CLIENT_SECRET = settings.SOCIALACCOUNT_PROVIDERS['google']['APP']['secret']
-GOOGLE_REDIRECT_URI = settings.SOCIALACCOUNT_PROVIDERS['google']['REDIRECT_URI']
+def _get_google_oauth_credentials(request=None):
+    """Retrieve Google OAuth client credentials and proper redirect URI."""
+    provider_config = settings.SOCIALACCOUNT_PROVIDERS.get('google', {})
+    app_config = provider_config.get('APP', {})
+    client_id = app_config.get('client_id') or getattr(settings, 'GOOGLE_CLIENT_ID', '')
+    client_secret = app_config.get('secret') or getattr(settings, 'GOOGLE_CLIENT_SECRET', '')
+    site_domain = getattr(settings, 'SITE_DOMAIN', 'http://localhost:8000').rstrip('/')
+    configured_redirect_uri = provider_config.get('REDIRECT_URI') or f"{site_domain}/google/callback/"
+    
+    if request:
+        current_host = request.get_host()
+        scheme = 'https' if request.is_secure() else 'http'
+        request_redirect_uri = f"{scheme}://{current_host}/google/callback/"
+        # Use configured redirect URI if domain matches or if explicitly specified in settings
+        return client_id, client_secret, configured_redirect_uri, request_redirect_uri
+    return client_id, client_secret, configured_redirect_uri, configured_redirect_uri
 
 def google_login(request):
     """Initiates the Google OAuth2 login flow"""
-    oauth2_url = (
-        'https://accounts.google.com/o/oauth2/v2/auth?'
-        f'client_id={GOOGLE_CLIENT_ID}&'
-        f'redirect_uri={SITE_DOMAIN}/google/callback/&'
-        'response_type=code&'
-        'scope=openid email profile'
-    )
+    client_id, client_secret, configured_redirect_uri, request_redirect_uri = _get_google_oauth_credentials(request)
+    if not client_id:
+        messages.error(request, _("Google login is not configured. Missing GOOGLE_CLIENT_ID in settings."))
+        return redirect('login')
+
+    # Prefer configured redirect URI; fallback to current request host
+    redirect_uri = configured_redirect_uri or request_redirect_uri
+    request.session['google_oauth_redirect_uri'] = redirect_uri
+
+    params = {
+        'client_id': client_id,
+        'redirect_uri': redirect_uri,
+        'response_type': 'code',
+        'scope': 'openid email profile',
+        'access_type': 'online',
+        'prompt': 'select_account',
+    }
+    oauth2_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
     return redirect(oauth2_url)
 
 def google_callback(request):
     """Handles the callback from Google OAuth2"""
+    error = request.GET.get('error')
+    if error:
+        error_desc = request.GET.get('error_description', error)
+        messages.error(request, _(f"Google login was not completed: {error_desc}"))
+        return redirect('login')
+
     code = request.GET.get('code')
-    
     if not code:
         messages.error(request, _("Google login was canceled. Please try again."))
         return redirect('login')
 
+    client_id, client_secret, configured_redirect_uri, request_redirect_uri = _get_google_oauth_credentials(request)
+    redirect_uri = request.session.get('google_oauth_redirect_uri') or configured_redirect_uri or request_redirect_uri
+
     # Exchange code for access token
     token_url = 'https://oauth2.googleapis.com/token'
     token_payload = {
-        'client_id': GOOGLE_CLIENT_ID,
-        'client_secret': GOOGLE_CLIENT_SECRET,
+        'client_id': client_id,
+        'client_secret': client_secret,
         'code': code,
-        'redirect_uri': GOOGLE_REDIRECT_URI,
+        'redirect_uri': redirect_uri,
         'grant_type': 'authorization_code'
     }
 
     try:
-        token_response = requests.post(token_url, data=token_payload)
+        token_response = requests.post(token_url, data=token_payload, timeout=10)
         token_data = token_response.json()
+
+        if token_response.status_code != 200 or 'access_token' not in token_data:
+            err_msg = token_data.get('error_description') or token_data.get('error', 'Token exchange failed')
+            logger.error(f"Google OAuth token error: {err_msg} | payload redirect_uri: {redirect_uri}")
+            messages.error(request, _(f"Google authentication error: {err_msg}"))
+            return redirect('login')
 
         # Get user info using access token
         userinfo_url = 'https://www.googleapis.com/oauth2/v3/userinfo'
         headers = {'Authorization': f'Bearer {token_data["access_token"]}'}
-        userinfo_response = requests.get(userinfo_url, headers=headers)
+        userinfo_response = requests.get(userinfo_url, headers=headers, timeout=10)
         user_info = userinfo_response.json()
 
-        email = user_info['email']
-        username = email.split('@')[0]
-        
-        # Get first and last name if available
+        email = user_info.get('email')
+        if not email:
+            messages.error(request, _("Unable to retrieve email from your Google account."))
+            return redirect('login')
+
+        email = email.lower().strip()
         first_name = user_info.get('given_name', '')
         last_name = user_info.get('family_name', '')
-        
-        # Check if user exists
-        user = User.objects.filter(email=email).first()
-        
+        username_candidate = email.split('@')[0]
+
+        # Check if user already exists
+        user = User.objects.filter(email__iexact=email).first()
+
         if user:
-            # Set the backend attribute on the user
+            # Google accounts have verified email
+            if not user.email_verify:
+                user.email_verify = True
+                user.save(update_fields=['email_verify'])
+
             backend = get_backends()[0]
             user.backend = f'{backend.__module__}.{backend.__class__.__name__}'
-            # User exists, log them in
             login(request, user)
             messages.success(request, _("Login successful!"))
-            if request.user.is_doctor():
-                return redirect("doctor_dashboard")
-            
-            if request.user.is_assistant():
-                return redirect("assistant_dashboard")
-        
-        # Store info in session for the next steps
+            return _redirect_after_login(request, user)
+
+        # User does not exist, prepare session data
         google_user_data = {
             'email': email,
             'first_name': first_name,
-            'last_name': last_name
+            'last_name': last_name,
         }
-        
-        # Check if username exists
-        if User.objects.filter(username=username).exists():
-            # Need to collect a new username
+
+        # Check if username is taken
+        if User.objects.filter(username__iexact=username_candidate).exists():
             google_user_data['need_username'] = True
             request.session['google_user_info'] = google_user_data
             return render(request, 'add_username_google.html')
-        
-        # Username is available, but still need to collect role/user type
-        google_user_data['username'] = username
+
+        google_user_data['username'] = username_candidate
         request.session['google_user_info'] = google_user_data
         return redirect('add_details_google_login')
 
+    except requests.RequestException as e:
+        logger.error(f"Google OAuth network error: {e}", exc_info=True)
+        messages.error(request, _("Network error connecting to Google. Please check your internet connection and try again."))
+        return redirect('login')
     except Exception as e:
-        messages.error(request, _(f"An error occurred during Google login. Please try again. {e}"))
+        logger.error(f"Google OAuth callback error: {e}", exc_info=True)
+        messages.error(request, _(f"An unexpected error occurred during Google login: {e}"))
         return redirect('login')
 
 def add_username_google_login(request):
-    
     if request.method != "POST":
         return redirect('login')
 
-    user_info = request.session.get('google_user_info', {})
+    user_info = request.session.get('google_user_info')
     if not user_info:
-        messages.error(request, _("Session expired. Please try again."))
+        messages.error(request, _("Session expired. Please sign in with Google again."))
         return redirect('login')
 
-    new_username = request.POST.get('username')
+    new_username = request.POST.get('username', '').strip()
+    if not new_username:
+        messages.error(request, _("Please choose a valid username."))
+        return render(request, 'add_username_google.html')
+
+    if '@' in new_username:
+        messages.error(request, _("Username cannot contain '@'."))
+        return render(request, 'add_username_google.html')
 
     # Validate username
-    if User.objects.filter(username=new_username).exists():
+    if User.objects.filter(username__iexact=new_username).exists():
         messages.error(request, _("Username already taken. Please choose another."))
         return render(request, 'add_username_google.html')
 
     # Update username in session
     user_info['username'] = new_username
     request.session['google_user_info'] = user_info
-    
-    # Redirect to collect additional details
     return redirect('add_details_google_login')
 
 def add_details_google_login(request):
     """Collects user type and role-specific details after Google login"""
-    user_info = request.session.get('google_user_info', {})
-    
+    user_info = request.session.get('google_user_info')
+
     if not user_info:
-        messages.error(request, _("Session expired. Please try again."))
+        messages.error(request, _("Session expired. Please sign in with Google again."))
         return redirect('login')
-    
+
     if request.method == "POST":
-        user_type = request.POST.get('user_type')
-        
+        user_type = request.POST.get('user_type', 'doctor')
         if user_type not in ['doctor', 'patient']:
-            messages.error(request, _("Please select a valid user type."))
-            return render(request, 'add_details_google.html', {'user_info': user_info})
-        
-        # Create the user
+            user_type = 'doctor'
+
+        username = user_info.get('username')
+        email = user_info.get('email')
+
+        # Double check username
+        if not username or User.objects.filter(username__iexact=username).exists():
+            messages.error(request, _("Username already taken. Please choose another."))
+            return render(request, 'add_username_google.html')
+
+        # Double check email
+        if User.objects.filter(email__iexact=email).exists():
+            existing = User.objects.filter(email__iexact=email).first()
+            backend = get_backends()[0]
+            existing.backend = f'{backend.__module__}.{backend.__class__.__name__}'
+            login(request, existing)
+            request.session.pop('google_user_info', None)
+            messages.success(request, _("Logged into your existing account."))
+            return _redirect_after_login(request, existing)
+
+        # Create user
         user = User.objects.create_user(
-            username=user_info['username'],
-            email=user_info['email'],
-            password=make_password(None),  # Random password since using OAuth
-            first_name=user_info['first_name'],
-            last_name=user_info['last_name'],
-            email_verify=True,  # Google accounts are pre-verified
+            username=username,
+            email=email,
+            password=None,
+            first_name=user_info.get('first_name', ''),
+            last_name=user_info.get('last_name', ''),
+            email_verify=True,
             user_type=user_type
         )
-        
-        # Create the appropriate profile
-        if user_type == 'doctor':
-            from doctor.models import DoctorProfile, Clinic
-            specialization = request.POST.get('specialization')
-            if not specialization:
-                messages.error(request, _('Specialization is required for doctors.'))
-                user.delete()  # Clean up the created user
-                return render(request, 'add_details_google.html', {'user_info': user_info})
-                
-            clinic_name = f"Dr. {user.get_full_name() or user.username}'s Clinic"
-            clinic, _created = Clinic.objects.get_or_create(
-                name=clinic_name
-            )
+        user.set_unusable_password()
+        user.save()
 
-            doctor = DoctorProfile.objects.create(
+        # Create profile
+        if user_type == 'doctor':
+            specialization = request.POST.get('specialization', '').strip()
+            if not specialization:
+                specialization = 'General Practice'
+
+            clinic_name = f"Dr. {user.get_full_name() or user.username}'s Clinic"
+            clinic, _created = Clinic.objects.get_or_create(name=clinic_name)
+
+            DoctorProfile.objects.create(
                 user=user,
                 specialization=specialization,
                 clinic=clinic
             )
-            doctor.save()
-            create_and_send_clinic_admin_credentials(user)
-        
-        # elif user_type == 'patient':
-        #     from patient.models import PatientProfile
-        #     date_of_birth = request.POST.get('date_of_birth')
-        #     patient = PatientProfile.objects.create(
-        #         user=user,
-        #         date_of_birth=date_of_birth if date_of_birth else None
-        #     )
-        #     patient.save()
-        
+
         # Clean up session
-        del request.session['google_user_info']
-        
+        request.session.pop('google_user_info', None)
+
         # Log user in
         backend = get_backends()[0]
         user.backend = f'{backend.__module__}.{backend.__class__.__name__}'
         login(request, user)
-        
-        messages.success(request, _("Account created successfully!"))
-        if request.user.is_doctor():
-            return redirect("doctor_dashboard")
-        
-        if request.user.is_assistant():
-            return redirect("assistant_dashboard")
-    
-    # GET request - show the form
+
+        messages.success(request, _("Account created successfully! Welcome to CMS."))
+        return _redirect_after_login(request, user)
+
     return render(request, 'add_details_google.html', {'user_info': user_info})

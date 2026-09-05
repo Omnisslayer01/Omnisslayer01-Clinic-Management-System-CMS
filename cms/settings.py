@@ -28,9 +28,9 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-SITE_DOMAIN = config('SITE_DOMAIN') 
+SITE_DOMAIN = config('SITE_DOMAIN', default='http://localhost:8000').rstrip('/')
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver', SITE_DOMAIN.replace('https://', '').replace('http://', '')] 
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver', SITE_DOMAIN.replace('https://', '').replace('http://', '').split(':')[0]] 
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
@@ -115,7 +115,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'cms.wsgi.application'
 
-ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+REQUIRE_EMAIL_VERIFICATION = config('REQUIRE_EMAIL_VERIFICATION', default=False if DEBUG else True, cast=bool)
+ACCOUNT_EMAIL_VERIFICATION = "mandatory" if REQUIRE_EMAIL_VERIFICATION else "optional"
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 ACCOUNT_LOGIN_METHODS = {'email', 'username'}
 ACCOUNT_UNIQUE_EMAIL = True
@@ -235,13 +236,17 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Add this configuration for Google OAuth
+GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID', default='')
+GOOGLE_CLIENT_SECRET = config('GOOGLE_CLIENT_SECRET', default='')
+GOOGLE_REDIRECT_URI = f"{SITE_DOMAIN}/google/callback/"
+
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'APP': {
-            'client_id': config('GOOGLE_CLIENT_ID', ''),
-            'secret': config('GOOGLE_CLIENT_SECRET', ''),
+            'client_id': GOOGLE_CLIENT_ID,
+            'secret': GOOGLE_CLIENT_SECRET,
         },
-        'REDIRECT_URI': f"{SITE_DOMAIN}/google/callback/",
+        'REDIRECT_URI': GOOGLE_REDIRECT_URI,
         'SCOPE': ['profile', 'email'],
     }
 }

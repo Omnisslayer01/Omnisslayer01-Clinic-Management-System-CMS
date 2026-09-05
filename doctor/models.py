@@ -35,10 +35,15 @@ class DoctorProfile(models.Model):
             profile, _ = cls.objects.get_or_create(
                 user=user,
                 defaults={
-                    'specialization': 'General',
+                    'specialization': 'General Practice',
                     'clinic': clinic
                 }
             )
+        elif not profile.clinic:
+            clinic_name = f"Dr. {user.get_full_name() or user.username}'s Clinic"
+            clinic, _ = Clinic.objects.get_or_create(name=clinic_name)
+            profile.clinic = clinic
+            profile.save(update_fields=['clinic'])
         return profile
 
     def __str__(self):

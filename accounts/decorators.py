@@ -32,7 +32,7 @@ def assistant_required(view_func):
                 return redirect("doctor_dashboard")
             
             if request.user.is_patient():
-                return redirect("patient.dashboard")
+                return redirect("landing_page")
             
             return redirect("login")
             
@@ -50,7 +50,7 @@ def doctor_or_assistant_required(view_func):
             messages.error(request, "You don't have permission to access this resource.")
             
             if request.user.is_patient():
-                return redirect("patient.dashboard")
+                return redirect("landing_page")
             
             return redirect("login")
             
