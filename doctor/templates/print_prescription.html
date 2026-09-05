@@ -1,0 +1,241 @@
+{% load static i18n %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Prescription #{{ medical_record.id }} - {{ patient.name }} - CMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background: white !important;
+                color: black !important;
+                padding: 0 !important;
+            }
+            .prescription-sheet {
+                box-shadow: none !important;
+                border: none !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 1.5cm !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen py-8 px-4 font-sans text-slate-800">
+
+    <!-- Top Action Toolbar (Hidden during print) -->
+    <div class="max-w-3xl mx-auto mb-6 no-print flex items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+        <div class="flex items-center gap-3">
+            <button onclick="window.history.back()" class="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-600 flex items-center gap-1.5 transition-colors">
+                <i class="fas fa-arrow-left"></i>
+                <span>Back</span>
+            </button>
+            <span class="text-xs font-bold text-slate-500">
+                Prescription #{{ medical_record.id }} · {{ patient.name }}
+            </span>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+            <a href="{% url 'generate_prescription_pdf' medical_record.id %}" target="_blank" class="px-4 py-2 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 text-xs font-bold flex items-center gap-1.5 transition-all">
+                <i class="fas fa-file-pdf"></i>
+                <span>Download PDF</span>
+            </a>
+            <button onclick="window.print()" class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-md shadow-sky-500/20 flex items-center gap-1.5 transition-all">
+                <i class="fas fa-print"></i>
+                <span>Print Prescription</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Official Prescription Sheet -->
+    <div class="prescription-sheet max-w-3xl mx-auto bg-white rounded-3xl shadow-xl border border-slate-200/80 p-8 sm:p-12 space-y-8">
+        
+        <!-- Clinic Letterhead Header -->
+        <div class="flex items-start justify-between border-b-2 border-sky-600 pb-6">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl bg-sky-600 text-white flex items-center justify-center font-black text-2xl shadow-md shadow-sky-500/20 shrink-0">
+                    <img src="{% static 'cms_logo.png' %}" alt="Logo" class="w-full h-full object-cover rounded-2xl" onerror="this.style.display='none'; this.parentNode.innerText='CMS';">
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                        {{ doctor_profile.clinic.name|default:"CMS CLINIC MEDICAL CENTER"|upper }}
+                    </h1>
+                    <p class="text-xs font-bold text-sky-700 mt-0.5">
+                        Dr. {{ doctor_name }} · <span class="font-normal text-slate-500">{{ doctor_specialization|default:"General Medicine & Clinical Practice" }}</span>
+                    </p>
+                    <p class="text-[11px] text-slate-400 mt-0.5">
+                        Digital Clinical Healthcare Services · Telehealth Verified
+                    </p>
+                </div>
+            </div>
+
+            <div class="text-right">
+                <span class="inline-block px-2.5 py-1 rounded-lg bg-sky-50 text-sky-800 border border-sky-200 text-[10px] font-black uppercase tracking-wider">
+                    E-Prescription
+                </span>
+                <p class="text-xs font-mono font-bold text-slate-800 mt-2">
+                    Rx ID: #RX-{{ medical_record.id }}
+                </p>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Date: {{ formatted_date }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Patient Demographics Card -->
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Patient Name</p>
+                <p class="text-xs font-bold text-slate-900 mt-0.5">{{ patient.name }}</p>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Patient ID</p>
+                <p class="text-xs font-mono font-bold text-slate-700 mt-0.5">#{{ patient.id }}</p>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Gender / Age</p>
+                <p class="text-xs text-slate-700 mt-0.5">{{ patient.gender|default:"Not Specified" }} {% if patient.date_of_birth %}· DOB: {{ patient.date_of_birth }}{% endif %}</p>
+            </div>
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Contact</p>
+                <p class="text-xs font-mono text-slate-700 mt-0.5">{{ patient.phone_number|default:"N/A" }}</p>
+            </div>
+            <div class="col-span-2 sm:col-span-4 pt-2 border-t border-slate-200/80 flex items-center gap-2">
+                {% if patient.allergies %}
+                <span class="px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-bold">
+                    <i class="fas fa-triangle-exclamation mr-1"></i> Allergies: {{ patient.allergies }}
+                </span>
+                {% else %}
+                <span class="px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-semibold">
+                    <i class="fas fa-shield-halved mr-1"></i> NKDA (No Known Drug Allergies)
+                </span>
+                {% endif %}
+                <span class="text-[10px] text-slate-400">• Outpatient Clinical Intake</span>
+            </div>
+        </div>
+
+        <!-- Clinical Diagnosis & Findings (If recorded) -->
+        {% if medical_record.details %}
+        <div class="space-y-1.5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-sky-800 flex items-center gap-1.5">
+                <i class="fas fa-stethoscope text-sky-600"></i>
+                <span>Clinical Diagnosis & Observations</span>
+            </h3>
+            <div class="p-4 rounded-2xl bg-white border border-slate-200 text-xs sm:text-sm text-slate-700 leading-relaxed">
+                {{ medical_record.details|safe }}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Prescription (Rx) Section -->
+        <div class="space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-sky-100">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl font-black text-sky-700 font-serif">℞</span>
+                    <h3 class="text-xs font-black uppercase tracking-wider text-slate-900">
+                        Prescription & Medication Order
+                    </h3>
+                </div>
+                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                    Active Regimen
+                </span>
+            </div>
+
+            {% if medication_items %}
+            <div class="rounded-2xl border border-sky-200 overflow-hidden shadow-sm">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-sky-900 text-white text-[10px] uppercase tracking-wider font-bold">
+                            <th class="py-2.5 px-3 text-center w-10">#</th>
+                            <th class="py-2.5 px-4 w-1/2">Medication & Dosage Form</th>
+                            <th class="py-2.5 px-4 w-1/2">Directions / Frequency / Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-sky-100">
+                        {% for med in medication_items %}
+                        <tr class="{% cycle 'bg-white' 'bg-sky-50/40' %}">
+                            <td class="py-3 px-3 text-center font-bold text-sky-700 font-mono">{{ forloop.counter }}</td>
+                            <td class="py-3 px-4">
+                                <span class="font-bold text-slate-900 text-xs sm:text-sm">{{ med.name }}</span>
+                            </td>
+                            <td class="py-3 px-4 text-slate-700">
+                                {{ med.directions }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-5 rounded-2xl bg-sky-50/60 border border-sky-200 text-xs sm:text-sm">
+                {% if medical_record.prescription %}
+                    <div class="text-slate-900 leading-relaxed font-sans whitespace-pre-line">
+                        {{ medical_record.prescription|linebreaksbr|safe }}
+                    </div>
+                {% else %}
+                    <p class="text-slate-400 italic">No specific medications prescribed for this consultation.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Doctor Remarks & Patient Instructions -->
+        {% if medical_record.remarks %}
+        <div class="space-y-1.5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
+                <i class="fas fa-circle-info text-amber-500"></i>
+                <span>Doctor Remarks & Patient Advice</span>
+            </h3>
+            <div class="p-4 rounded-2xl bg-amber-50/60 border border-amber-200 text-xs text-slate-700">
+                {{ medical_record.remarks }}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Digital Signature & Clinic Seal -->
+        <div class="pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div class="text-[11px] text-slate-400 space-y-0.5">
+                <p class="font-bold text-slate-500 flex items-center gap-1">
+                    <i class="fas fa-shield-halved text-sky-500"></i>
+                    <span>Digitally Authenticated Prescription</span>
+                </p>
+                <p>Generated by CMS Clinic Management Electronic Health Record system.</p>
+                <p>License ID: CMS-DOC-{{ medical_record.doctor.id }} · Verified Telehealth Standard</p>
+            </div>
+
+            <div class="text-right border-t-2 border-slate-800 pt-2 min-w-[200px]">
+                <p class="text-xs font-black text-slate-900">Dr. {{ doctor_name }}</p>
+                <p class="text-[10px] text-slate-500">{{ doctor_specialization|default:"Attending Physician" }}</p>
+                <p class="text-[9px] font-mono text-slate-400 mt-1">Digital Signature Verified</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center pt-4 border-t border-slate-100 text-[10px] text-slate-400 italic">
+            This is a computer-generated medical prescription valid under clinical telehealth standards.
+        </div>
+
+    </div>
+
+    {% if auto_print %}
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                window.print();
+            }, 600);
+        });
+    </script>
+    {% endif %}
+
+</body>
+</html>

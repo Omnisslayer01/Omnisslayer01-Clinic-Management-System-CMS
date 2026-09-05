@@ -18,6 +18,7 @@ urlpatterns = [
     path('update-medical-record/', medical_records.update_medical_record, name='update_medical_record'),
     path('delete-medical-record/', medical_records.delete_medical_record, name='delete_medical_record'),
     path('generate-prescription-pdf/<int:record_id>/', medical_records.generate_prescription_pdf, name='generate_prescription_pdf'),
+    path('prescription/print/<int:record_id>/', medical_records.print_prescription_view, name='print_prescription'),
     path('prescription/share/<uuid:token>/', medical_records.shared_prescription_pdf, name='shared_prescription_pdf'),
     path('prescription/toggle-share/<int:record_id>/', medical_records.toggle_prescription_share, name='toggle_prescription_share'),
 
@@ -93,6 +94,10 @@ urlpatterns = [
     
     # 16. Settings: Billing
     path('billing/', medcare_views.billing_view, name='medcare_billing'),
+    path('billing/create/', medcare_views.create_invoice_view, name='create_invoice'),
+    path('billing/status/<str:invoice_id>/', medcare_views.update_invoice_status_view, name='update_invoice_status'),
+    path('billing/receipt/<str:invoice_id>/', medcare_views.invoice_receipt_view, name='invoice_receipt'),
+    path('billing/pdf/<str:invoice_id>/', medcare_views.generate_invoice_pdf, name='generate_invoice_pdf'),
     
     # 17. Settings: Audit Log
     path('audit-log/', medcare_views.audit_log_view, name='medcare_audit_log'),

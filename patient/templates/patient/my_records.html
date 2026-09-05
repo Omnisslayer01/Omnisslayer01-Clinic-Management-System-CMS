@@ -1,0 +1,356 @@
+{% extends "patient/patient_base.html" %}
+{% load static i18n %}
+
+{% block page_title %}My Medical Records{% endblock %}
+{% block page_subtitle %}Personal health history, clinical visits, immunization & uploaded documents{% endblock %}
+
+{% block patient_content %}
+<div class="space-y-6">
+
+  <!-- 1. PATIENT DEMOGRAPHIC & HEALTH PROFILE CARD -->
+  <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div class="flex items-center gap-3.5">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-white font-black text-xl flex items-center justify-center shadow-lg shadow-sky-500/20 shrink-0">
+          {{ patient.name|make_list|first|upper }}
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white">{{ patient.name }}</h1>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 font-mono">
+              Patient #P-{{ patient.id|stringformat:'04d' }}
+            </span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500 mt-1">
+            <span>{{ patient.gender }}</span>
+            <span>·</span>
+            <span>{{ patient.date_of_birth|date:"d M Y"|default:"Age 29" }}</span>
+            <span>·</span>
+            <span>Blood Group: <strong class="text-slate-800 dark:text-slate-200 font-mono">{{ patient.blood_group|default:"O+" }}</strong></span>
+            <span>·</span>
+            <span>Phone: {{ patient.phone_number }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="document.getElementById('uploadDocModal').classList.remove('hidden')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">
+          <i class="fas fa-arrow-up-from-bracket text-xs text-sky-600"></i>
+          <span>Upload Document</span>
+        </button>
+        <button type="button" onclick="document.getElementById('addVaccineModal').classList.remove('hidden')" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-500 shadow-sm shadow-sky-600/20 transition-all">
+          <i class="fas fa-syringe text-xs"></i>
+          <span>+ Add Vaccine</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Clinical Warning & Allergies Bar -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
+      <div class="p-3 rounded-2xl bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-900/40">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1">
+          <i class="fas fa-triangle-exclamation"></i>
+          <span>Adverse Drug Allergies</span>
+        </span>
+        <p class="font-bold text-rose-900 dark:text-rose-200 mt-0.5">
+          {{ patient.allergies|default:"NKDA - No Known Drug Allergies" }}
+        </p>
+      </div>
+
+      <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+          <i class="fas fa-notes-medical text-sky-500"></i>
+          <span>Chronic Health Conditions</span>
+        </span>
+        <p class="font-semibold text-slate-800 dark:text-slate-200 mt-0.5 truncate">
+          {{ patient.medical_history|default:"No chronic medical conditions recorded" }}
+        </p>
+      </div>
+
+      <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+          <i class="fas fa-pills text-amber-500"></i>
+          <span>Active Medications Regimen</span>
+        </span>
+        <p class="font-semibold text-slate-800 dark:text-slate-200 mt-0.5 truncate">
+          {{ patient.active_medications|default:"No ongoing medication regimen" }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. TABS: PAST VISITS, VACCINATIONS, UPLOADED REPOSITORY -->
+  <div class="space-y-4">
+    
+    <!-- Tab Controls -->
+    <div class="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 text-xs">
+      <button type="button" onclick="switchRecordTab('visits')" id="tabBtn-visits" class="record-tab-btn px-4 py-2 rounded-xl font-bold bg-sky-600 text-white shadow-sm transition-all">
+        <i class="fas fa-stethoscope mr-1.5"></i>
+        <span>Consultation Visit Histories ({{ records_count }})</span>
+      </button>
+      <button type="button" onclick="switchRecordTab('vaccines')" id="tabBtn-vaccines" class="record-tab-btn px-4 py-2 rounded-xl font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+        <i class="fas fa-syringe mr-1.5"></i>
+        <span>Vaccinations ({{ vaccinations.count }})</span>
+      </button>
+      <button type="button" onclick="switchRecordTab('docs')" id="tabBtn-docs" class="record-tab-btn px-4 py-2 rounded-xl font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+        <i class="fas fa-folder-open mr-1.5"></i>
+        <span>Uploaded Files ({{ documents.count }})</span>
+      </button>
+    </div>
+
+    <!-- TAB 1: CONSULTATION VISIT HISTORIES -->
+    <div id="tabContent-visits" class="space-y-4">
+      {% for rec in records %}
+        <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 shadow-sm space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <span class="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
+                Visit Record #CR-{{ rec.id|stringformat:'05d' }}
+              </span>
+              <h3 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2 mt-0.5">
+                <span>{{ rec.details|truncatechars:60 }}</span>
+              </h3>
+              <p class="text-xs text-sky-600 dark:text-sky-400 font-semibold">
+                Consulted by Dr. {{ rec.doctor.user.get_full_name|default:rec.doctor.user.username }} ({{ rec.doctor.specialization }})
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-slate-500 font-semibold">
+                <i class="far fa-calendar-check text-sky-500 mr-1"></i>
+                {{ rec.date|date:"l, d F Y" }}
+              </span>
+              <a href="{% url 'generate_prescription_pdf' rec.id %}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/70 border border-sky-200 dark:border-sky-800 hover:bg-sky-100 transition-all">
+                <i class="fas fa-file-pdf text-rose-500"></i>
+                <span>Download PDF</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Doctor's Remarks -->
+          {% if rec.remarks %}
+            <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 text-xs text-slate-700 dark:text-slate-300">
+              <span class="font-bold text-slate-900 dark:text-white">Doctor's Advice / Remarks:</span>
+              <p class="mt-0.5">{{ rec.remarks }}</p>
+            </div>
+          {% endif %}
+
+          <!-- Prescribed Medications List -->
+          {% if rec.parsed_meds %}
+            <div class="pt-2">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-2">Prescribed Medicines:</span>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {% for med in rec.parsed_meds %}
+                  <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 flex items-start gap-2 text-xs">
+                    <span class="w-5 h-5 rounded-full bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 font-mono font-bold text-[10px] flex items-center justify-center shrink-0">
+                      {{ med.num }}
+                    </span>
+                    <div class="min-w-0">
+                      <p class="font-bold text-slate-900 dark:text-white truncate">{{ med.name }}</p>
+                      <p class="text-[11px] text-slate-500 truncate">{{ med.directions }}</p>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      {% empty %}
+        <div class="p-12 text-center rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+          <i class="fas fa-stethoscope text-4xl text-slate-300 dark:text-slate-600 mb-2"></i>
+          <h3 class="text-sm font-bold text-slate-900 dark:text-white">No consultation records yet</h3>
+          <p class="text-xs text-slate-500 mt-1">Book an appointment to begin your clinical history with CMS.</p>
+          <a href="{% url 'patient_book_appointment' %}" class="inline-block mt-3 text-xs font-bold text-sky-600 hover:underline">
+            Book First Consultation
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- TAB 2: VACCINATIONS -->
+    <div id="tabContent-vaccines" class="hidden space-y-4">
+      <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-sm">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-50 dark:bg-slate-800/80 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 dark:border-slate-800">
+            <tr>
+              <th class="py-3 px-4">Vaccine Name</th>
+              <th class="py-3 px-4">Dose / Interval</th>
+              <th class="py-3 px-4">Date Administered</th>
+              <th class="py-3 px-4">Administered By</th>
+              <th class="py-3 px-4">Batch Number</th>
+              <th class="py-3 px-4 text-right">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+            {% for vax in vaccinations %}
+              <tr>
+                <td class="py-3.5 px-4 font-bold text-slate-900 dark:text-white">{{ vax.vaccine_name }}</td>
+                <td class="py-3.5 px-4">{{ vax.dose_number }}</td>
+                <td class="py-3.5 px-4 font-mono">{{ vax.date_administered|date:"d M Y" }}</td>
+                <td class="py-3.5 px-4 text-slate-500">{{ vax.administered_by|default:"Public Health" }}</td>
+                <td class="py-3.5 px-4 font-mono text-[11px] text-slate-400">{{ vax.batch_number|default:"-" }}</td>
+                <td class="py-3.5 px-4 text-right">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400">
+                    {{ vax.status }}
+                  </span>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6" class="py-8 text-center text-slate-400">No vaccination records logged yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 3: UPLOADED FILES REPOSITORY -->
+    <div id="tabContent-docs" class="hidden space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        {% for doc in documents %}
+          <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-3">
+            <div>
+              <div class="flex items-center justify-between text-[10px] text-slate-400 mb-1">
+                <span class="px-2 py-0.5 rounded bg-sky-50 dark:bg-sky-950 text-sky-700 dark:text-sky-300 font-bold uppercase">{{ doc.document_type }}</span>
+                <span>{{ doc.uploaded_at|date:"d M Y" }}</span>
+              </div>
+              <h4 class="text-xs font-bold text-slate-900 dark:text-white truncate">{{ doc.title }}</h4>
+              {% if doc.notes %}
+                <p class="text-[11px] text-slate-500 mt-1 line-clamp-2">{{ doc.notes }}</p>
+              {% endif %}
+            </div>
+
+            <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+              {% if doc.file %}
+                <a href="{{ doc.file.url }}" target="_blank" class="text-sky-600 font-bold hover:underline">
+                  <i class="fas fa-file-arrow-down mr-1"></i> View File
+                </a>
+              {% else %}
+                <span class="text-slate-400">No file attached</span>
+              {% endif %}
+              <form action="{% url 'patient_delete_document' doc.id %}" method="post" onsubmit="return confirm('Delete this document?')">
+                {% csrf_token %}
+                <button type="submit" class="text-rose-500 hover:text-rose-700 text-xs">
+                  <i class="fas fa-trash-can"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+        {% empty %}
+          <div class="col-span-full p-8 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-slate-400 text-xs">
+            No health documents uploaded yet. Upload lab reports, scans, or discharge summaries above.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Upload Document Modal -->
+<div id="uploadDocModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+    <div class="flex items-center justify-between">
+      <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Upload Health Document</h3>
+      <button onclick="document.getElementById('uploadDocModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+    <form action="{% url 'patient_upload_document' %}" method="post" enctype="multipart/form-data" class="space-y-3 text-xs">
+      {% csrf_token %}
+      <div>
+        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Document Title</label>
+        <input type="text" name="title" required placeholder="e.g. Chest CT Scan Report, Lipid Panel"
+               class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+      </div>
+      <div>
+        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Document Type</label>
+        <select name="document_type" class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+          <option value="Lab Report">Lab Report</option>
+          <option value="Prescription">Prescription</option>
+          <option value="Discharge Summary">Discharge Summary</option>
+          <option value="Scan / X-Ray">Scan / X-Ray</option>
+          <option value="Vaccination Card">Vaccination Card</option>
+          <option value="Insurance Card">Insurance Card</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Select File (PDF, Image)</label>
+        <input type="file" name="document_file" class="w-full p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500">
+      </div>
+      <div>
+        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Doctor / Clinical Notes (Optional)</label>
+        <textarea name="notes" rows="2" placeholder="e.g. Fasting sample tested at Ruby Hall Clinic"
+                  class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"></textarea>
+      </div>
+      <button type="submit" class="w-full py-2.5 rounded-xl font-bold text-white bg-sky-600 hover:bg-sky-500 shadow-sm">
+        Upload to Medical Repository
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Add Vaccination Modal -->
+<div id="addVaccineModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+    <div class="flex items-center justify-between">
+      <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Record Immunization / Vaccine</h3>
+      <button onclick="document.getElementById('addVaccineModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+    <form action="{% url 'patient_add_vaccination' %}" method="post" class="space-y-3 text-xs">
+      {% csrf_token %}
+      <div>
+        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Vaccine Name</label>
+        <input type="text" name="vaccine_name" required placeholder="e.g. Hepatitis B, COVID-19, Tetanus"
+               class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Dose</label>
+          <input type="text" name="dose_number" placeholder="Dose 1 / Booster"
+                 class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Date Administered</label>
+          <input type="date" name="date_administered"
+                 class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+        </div>
+      </div>
+      <div>
+        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Administered By / Center</label>
+        <input type="text" name="administered_by" placeholder="e.g. City Health Hospital"
+               class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+      </div>
+      <div>
+        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Batch Number (Optional)</label>
+        <input type="text" name="batch_number" placeholder="e.g. BATCH-9902"
+               class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+      </div>
+      <button type="submit" class="w-full py-2.5 rounded-xl font-bold text-white bg-sky-600 hover:bg-sky-500 shadow-sm">
+        Save Vaccine Record
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+function switchRecordTab(tab) {
+  document.querySelectorAll('.record-tab-btn').forEach(b => {
+    b.classList.remove('bg-sky-600', 'text-white', 'shadow-sm');
+    b.classList.add('text-slate-600', 'dark:text-slate-400');
+  });
+  document.getElementById('tabBtn-' + tab).classList.add('bg-sky-600', 'text-white', 'shadow-sm');
+  document.getElementById('tabBtn-' + tab).classList.remove('text-slate-600', 'dark:text-slate-400');
+
+  document.getElementById('tabContent-visits').classList.add('hidden');
+  document.getElementById('tabContent-vaccines').classList.add('hidden');
+  document.getElementById('tabContent-docs').classList.add('hidden');
+
+  document.getElementById('tabContent-' + tab).classList.remove('hidden');
+}
+</script>
+{% endblock %}

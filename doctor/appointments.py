@@ -315,26 +315,69 @@ def delete_appointment_doctor(request):
 @doctor_or_assistant_required
 @login_required
 def mark_appointment(request):
-    """View to mark an appointment as completed."""
+    """View to mark an appointment as completed and ensure consultation record is linked to Medical History."""
     if request.method != 'POST':
         messages.error(request, _("Method not allowed"))
         return redirect("appointment_list")
     
-    doctor = DoctorProfile.get_or_create_for_user(request.user)
+    if hasattr(request.user, 'is_doctor') and request.user.is_doctor():
+        doctor = DoctorProfile.get_or_create_for_user(request.user)
+    else:
+        assistant_profile = get_object_or_404(AssistantProfile, user=request.user)
+        doctor = assistant_profile.doctor
+
     appointment_id = request.POST.get('appointment_id')
     
     try:
         appointment = get_object_or_404(Appointments, id=appointment_id, doctor=doctor)
+        from .models import AuditLogEntry, QueueTicket
         
         # Toggle between 'scheduled' and 'completed'
         if appointment.status == 'scheduled':
             appointment.status = 'completed'
+            
+            # Check if a consultation record / prescription already exists for this patient today
+            today_date = appointment.date or timezone.now().date()
+            existing_record = MedicalRecord.objects.filter(
+                doctor=doctor, 
+                patient=appointment.patient, 
+                date__date=today_date
+            ).first()
+            
+            if not existing_record:
+                reason = appointment.reason_for_visit or "General Clinical Evaluation"
+                rx_text = request.POST.get('prescription', 'Standard Clinical Observation & Routine Care').strip()
+                notes = request.POST.get('details', f"Completed Outpatient Consultation — Reason: {reason}").strip()
+                advice = request.POST.get('remarks', "Consultation concluded. Take medications as directed and return if symptoms persist.").strip()
+                
+                new_record = MedicalRecord.objects.create(
+                    doctor=doctor,
+                    clinic=doctor.clinic,
+                    patient=appointment.patient,
+                    date=timezone.now(),
+                    details=notes,
+                    remarks=advice,
+                    prescription=rx_text
+                )
+                
+                if rx_text and (rx_text != 'Standard Clinical Observation & Routine Care' or not appointment.patient.active_medications):
+                    appointment.patient.active_medications = rx_text
+                    appointment.patient.save(update_fields=['active_medications'])
+                
+                AuditLogEntry.objects.create(
+                    user=request.user,
+                    action_type="Consultation Completed",
+                    description=f"Consultation #{new_record.id:05d} completed for patient {appointment.patient.name}. Prescription added to Medical History."
+                )
+                
+                messages.success(request, _(f"Consultation for {appointment.patient.name} completed! Record and prescription are now available in Medical History."))
+            else:
+                messages.success(request, _(f"Appointment with {appointment.patient.name} marked as completed."))
         else:
             appointment.status = 'scheduled'
+            messages.success(request, _(f"Appointment with {appointment.patient.name} reopened as Scheduled."))
             
         appointment.save()
-        messages.success(request, _(f"Appointment with {appointment.patient.name} marked as {appointment.status}."))
-
         return redirect("appointment_list")
 
     except Exception as e:

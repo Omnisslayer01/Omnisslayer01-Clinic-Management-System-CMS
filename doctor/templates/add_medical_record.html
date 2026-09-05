@@ -2,7 +2,7 @@
 {% load i18n %}
 {% load static %}
 
-{% block title %}Add Medical Record - CMS{% endblock %}
+{% block title %}{% if is_first_consultation %}First Patient Consultation Intake{% else %}Clinical Consultation Record{% endif %} - CMS{% endblock %}
 
 {% block extra_head %}
 <!-- Quill CSS -->
@@ -22,7 +22,7 @@
         border-bottom-left-radius: 1rem;
         border-bottom-right-radius: 1rem;
         border-color: #e2e8f0;
-        min-height: 140px;
+        min-height: 120px;
         font-family: inherit;
         font-size: 0.875rem;
     }
@@ -42,21 +42,104 @@
         <!-- React Top Header Mount -->
         <div id="react-top-header"></div>
 
-        <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-4xl w-full mx-auto space-y-6">
-            <!-- Header -->
-            <div class="flex items-center justify-between">
+        <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-5xl w-full mx-auto space-y-6">
+            <!-- Header & Context Navigation -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <a href="{% url 'show_patient_details' %}?patient_id={{ patient_id }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-sky-600 transition-colors">
+                            <i class="fas fa-arrow-left"></i>
+                            <span>Back to Patient Profile</span>
+                        </a>
+                        <span class="text-slate-300 dark:text-slate-700">•</span>
+                        {% if is_first_consultation %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                            <i class="fas fa-sparkles text-amber-500"></i> First Clinical Intake
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300">
+                            <i class="fas fa-notes-medical text-sky-500"></i> Follow-up Consultation (#{{ history_count|add:1 }})
+                        </span>
+                        {% endif %}
+                    </div>
                     <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-                        {% trans "Clinical Consultation Record" %}
+                        {% if is_first_consultation %}Initial Patient Consultation & Intake{% else %}Clinical Consultation & E-Prescription{% endif %}
                     </h1>
-                    <p class="text-xs sm:text-sm text-slate-500 mt-1">
-                        Recording new diagnosis, clinical notes, and prescription for <strong class="text-slate-700 dark:text-slate-300">{{ patient_name }}</strong>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                        Recording clinical examination, diagnosis, and verified medication regimen for <strong class="text-slate-800 dark:text-slate-200">{{ patient.name }}</strong>
                     </p>
                 </div>
-                <a href="{% url 'show_patient_details' %}?patient_id={{ patient_id }}" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100">
-                    <i class="fas fa-arrow-left"></i>
-                    <span>Back</span>
-                </a>
+
+                <div class="flex items-center gap-2">
+                    {% if appointment %}
+                    <span class="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-[11px] font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5 shadow-sm">
+                        <i class="fas fa-calendar-check text-indigo-500"></i>
+                        <span>Appt #{{ appointment.id }}</span>
+                    </span>
+                    {% endif %}
+                    <a href="{% url 'show_patient_details' %}?patient_id={{ patient_id }}" class="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        Cancel
+                    </a>
+                </div>
+            </div>
+
+            <!-- Patient Clinical Demographics & History Banner -->
+            <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 shadow-sm">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-white font-extrabold flex items-center justify-center text-xl shadow-md shadow-sky-500/20 shrink-0">
+                            {{ patient.name|slice:":1"|upper }}
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2.5">
+                                <h3 class="text-lg font-bold text-slate-900 dark:text-white">{{ patient.name }}</h3>
+                                <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold {% if patient.gender|lower == 'female' %}bg-pink-50 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300{% else %}bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300{% endif %}">
+                                    {{ patient.gender|default:"Not specified" }}
+                                </span>
+                                <span class="text-xs text-slate-400 font-mono">ID: #{{ patient.id }}</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-4 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                {% if patient.date_of_birth %}
+                                <span class="flex items-center gap-1">
+                                    <i class="far fa-calendar text-sky-500"></i>
+                                    DOB: {{ patient.date_of_birth }} {% if patient_age %}({{ patient_age }} yrs){% endif %}
+                                </span>
+                                {% endif %}
+                                {% if patient.phone_number %}
+                                <span class="flex items-center gap-1 font-mono">
+                                    <i class="fas fa-phone text-emerald-500"></i>
+                                    {{ patient.phone_number }}
+                                </span>
+                                {% endif %}
+                                <span class="flex items-center gap-1">
+                                    <i class="far fa-clock text-slate-400"></i>
+                                    Past Visits: {{ history_count }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clinical Warnings & Allergies -->
+                    <div class="flex flex-col sm:items-end gap-1.5">
+                        {% if patient.allergies %}
+                        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/80 text-rose-700 dark:text-rose-300 text-xs font-bold">
+                            <i class="fas fa-triangle-exclamation text-rose-500"></i>
+                            <span>Allergies: {{ patient.allergies }}</span>
+                        </div>
+                        {% else %}
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-900/60 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">
+                            <i class="fas fa-shield-halved text-emerald-500"></i>
+                            <span>NKDA (No Known Drug Allergies)</span>
+                        </div>
+                        {% endif %}
+
+                        {% if patient.medical_history %}
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs truncate">
+                            <strong class="text-slate-700 dark:text-slate-300">History:</strong> {{ patient.medical_history }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
 
             <!-- Form Card -->
@@ -64,68 +147,252 @@
                 <form method="POST" action="{% url 'add_medical_record' %}" id="medicalRecordForm" class="space-y-6">
                     {% csrf_token %}
                     <input type="hidden" name="patient_id" value="{{ patient_id }}">
+                    {% if appointment %}
+                    <input type="hidden" name="appointment_id" value="{{ appointment.id }}">
+                    {% endif %}
 
-                    <!-- Consultation Date -->
-                    <div>
-                        <label for="date" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                            {% trans "Consultation Date" %} <span class="text-rose-500">*</span>
-                        </label>
-                        <div class="relative max-w-xs">
-                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                                <i class="far fa-calendar-alt text-xs"></i>
+                    <!-- Consultation Overview (Date & Type) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                        <div>
+                            <label for="date" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                                {% trans "Consultation Date" %} <span class="text-rose-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                    <i class="far fa-calendar-alt text-xs"></i>
+                                </div>
+                                <input type="date" name="date" id="date" value="{{ today_date|date:'Y-m-d' }}" required
+                                       class="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
                             </div>
-                            <input type="date" name="date" id="date" value="{{ today_date|date:'Y-m-d' }}" required
-                                   class="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                                {% trans "Consultation Classification" %}
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fas fa-stethoscope text-xs"></i>
+                                </div>
+                                <input type="text" readonly value="{% if is_first_consultation %}Initial Clinical Consultation & Intake{% else %}General Outpatient Consultation{% endif %}"
+                                       class="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold cursor-not-allowed">
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Medical Details (Diagnosis / Symptoms) -->
-                    <div>
-                        <div class="flex items-center justify-between mb-1.5">
+                    <!-- Vital Signs & Biometrics Intake -->
+                    <div class="p-4 sm:p-5 rounded-2xl bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-bold text-xs">
+                                <i class="fas fa-heart-pulse text-sm text-emerald-600"></i>
+                                <span>{% trans "Clinical Vital Signs & Biometrics" %}</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400 font-medium">Automatic calculation & PDF export</span>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">BP (mmHg)</label>
+                                <input type="text" name="vitals_bp" id="vitals_bp" placeholder="120/80"
+                                       class="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Pulse (bpm)</label>
+                                <input type="text" name="vitals_pulse" id="vitals_pulse" placeholder="72"
+                                       class="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Temp (°F)</label>
+                                <input type="text" name="vitals_temp" id="vitals_temp" placeholder="98.6"
+                                       class="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">Weight (kg)</label>
+                                <input type="text" name="vitals_weight" id="vitals_weight" placeholder="70"
+                                       class="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">SpO2 (%)</label>
+                                <input type="text" name="vitals_spo2" id="vitals_spo2" placeholder="98"
+                                       class="w-full px-3 py-2 rounded-xl text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clinical Findings, Symptoms & Diagnosis -->
+                    <div class="space-y-2">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                                {% trans "Clinical Details & Diagnosis" %}
+                                {% trans "Clinical Findings, Symptoms & Diagnosis" %} <span class="text-rose-500">*</span>
                             </label>
                             <div class="flex items-center gap-2">
                                 <button type="button" onclick="window.openAmbientScribeModal ? window.openAmbientScribeModal('details-editor-content') : null" class="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 text-[11px] font-bold flex items-center gap-1.5 border border-indigo-200 dark:border-indigo-800 transition-all">
-                                    <i class="fas fa-stethoscope text-indigo-500"></i>
-                                    <span>AI Ambient Scribe (Voice to SOAP)</span>
+                                    <i class="fas fa-microphone-lines text-indigo-500"></i>
+                                    <span>AI Ambient Scribe (Voice SOAP)</span>
                                 </button>
-                                <span class="text-[11px] text-slate-400">Rich formatted</span>
                             </div>
                         </div>
+
+                        <!-- Quick Diagnosis Presets -->
+                        <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+                            <span class="text-slate-400 font-bold mr-1">Quick Picks:</span>
+                            <button type="button" onclick="appendDiagnosis('Upper Respiratory Tract Infection (URTI)')" class="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors">+ URTI</button>
+                            <button type="button" onclick="appendDiagnosis('Acute Pharyngitis & Tonsillitis')" class="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors">+ Pharyngitis</button>
+                            <button type="button" onclick="appendDiagnosis('Essential Hypertension Stage 1')" class="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors">+ Hypertension</button>
+                            <button type="button" onclick="appendDiagnosis('Type 2 Diabetes Mellitus')" class="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors">+ Type 2 DM</button>
+                            <button type="button" onclick="appendDiagnosis('Acute Gastroenteritis')" class="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors">+ Gastroenteritis</button>
+                            <button type="button" onclick="appendDiagnosis('Routine Wellness Check & Health Maintenance')" class="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors">+ Wellness Check</button>
+                        </div>
+
                         <div id="details-editor"></div>
                         <input type="hidden" name="details" id="details-input">
                     </div>
 
-                    <!-- Doctor Remarks -->
-                    <div>
-                        <label for="remarks" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                            {% trans "Clinical Remarks & Observations" %}
-                        </label>
-                        <textarea name="remarks" id="remarks" rows="2" placeholder="Private doctor observations, next checkup instructions, or lab notes..."
-                                  class="w-full p-3.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
-                    </div>
-
-                    <!-- Prescription Box -->
-                    <div class="p-5 rounded-2xl bg-sky-50/50 dark:bg-sky-950/20 border border-sky-100 dark:border-sky-900/40 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2 text-sky-800 dark:text-sky-300 font-bold text-xs">
-                                <i class="fas fa-prescription text-sm"></i>
-                                <span>{% trans "Prescription (Rx) & Medications" %}</span>
+                    <!-- Smart E-Prescription (Rx) Builder Section -->
+                    <div class="p-5 sm:p-6 rounded-3xl bg-sky-50/50 dark:bg-sky-950/20 border border-sky-100 dark:border-sky-900/40 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-sky-100 dark:border-sky-900/40">
+                            <div>
+                                <div class="flex items-center gap-2 text-sky-900 dark:text-sky-200 font-bold text-sm">
+                                    <i class="fas fa-prescription text-base text-sky-600"></i>
+                                    <span>{% trans "Prescribed Medications & Regimen (Rx)" %}</span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 mt-0.5">Itemized medications automatically rendered one below the other on distinct rows in PDF & Medical History</p>
                             </div>
-                            <span class="text-[10px] text-slate-500">Supports English & Arabic RTL</span>
+
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="toggleRxEditorMode()" id="rxModeToggleBtn" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-xs font-semibold shadow-sm hover:bg-sky-50">
+                                    <i class="fas fa-pen-to-square mr-1"></i> <span id="rxModeLabel">Freeform Editor</span>
+                                </button>
+                            </div>
                         </div>
-                        <div id="prescription-editor"></div>
+
+                        <!-- Interactive Drug Builder Component -->
+                        <div id="smartDrugBuilder" class="space-y-3">
+                            <!-- Quick Common Drug Selector Chips -->
+                            <div class="flex flex-wrap items-center gap-1.5 text-xs">
+                                <span class="text-[11px] text-slate-400 font-bold mr-1">Common Rx:</span>
+                                <button type="button" onclick="selectCommonDrug('Amoxicillin 500mg', 'Capsule', 'BID (Twice daily)', '7 Days', 'After meals')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-sky-50 text-slate-700 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-700 shadow-sm">+ Amoxicillin 500mg</button>
+                                <button type="button" onclick="selectCommonDrug('Paracetamol 650mg', 'Tablet', 'TID (Three times daily)', '3 Days', 'After meals (SOS for pain/fever)')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-sky-50 text-slate-700 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-700 shadow-sm">+ Paracetamol 650mg</button>
+                                <button type="button" onclick="selectCommonDrug('Azithromycin 500mg', 'Tablet', 'OD (Once daily)', '3 Days', '1 hr before meals')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-sky-50 text-slate-700 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-700 shadow-sm">+ Azithromycin 500mg</button>
+                                <button type="button" onclick="selectCommonDrug('Omeprazole 20mg', 'Capsule', 'OD (Once daily)', '14 Days', '30 mins before breakfast')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-sky-50 text-slate-700 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-700 shadow-sm">+ Omeprazole 20mg</button>
+                                <button type="button" onclick="selectCommonDrug('Cetirizine 10mg', 'Tablet', 'OD (Once daily)', '5 Days', 'At bedtime')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-sky-50 text-slate-700 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-700 shadow-sm">+ Cetirizine 10mg</button>
+                                <button type="button" onclick="selectCommonDrug('Metformin 500mg', 'Tablet', 'BID (Twice daily)', '30 Days', 'With meals')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-sky-50 text-slate-700 dark:text-slate-300 text-xs font-medium border border-slate-200 dark:border-slate-700 shadow-sm">+ Metformin 500mg</button>
+                            </div>
+
+                            <!-- Builder Row Inputs -->
+                            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
+                                <div class="sm:col-span-4">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Medication Name & Strength</label>
+                                    <input type="text" id="builder_med_name" placeholder="e.g. Amoxicillin 500mg"
+                                           class="w-full px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Dosage Form</label>
+                                    <select id="builder_form" class="w-full px-2.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                                        <option value="Tablet">Tablet</option>
+                                        <option value="Capsule">Capsule</option>
+                                        <option value="Syrup">Syrup</option>
+                                        <option value="Injection">Injection</option>
+                                        <option value="Inhaler">Inhaler</option>
+                                        <option value="Drops">Drops</option>
+                                        <option value="Ointment">Ointment</option>
+                                    </select>
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Frequency</label>
+                                    <select id="builder_freq" class="w-full px-2.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                                        <option value="BID (Twice daily)">BID (Twice daily)</option>
+                                        <option value="OD (Once daily)">OD (Once daily)</option>
+                                        <option value="TID (Three times daily)">TID (Three times daily)</option>
+                                        <option value="QID (Four times daily)">QID (Four times daily)</option>
+                                        <option value="PRN (As needed / SOS)">PRN (As needed / SOS)</option>
+                                        <option value="At Bedtime (Night only)">At Bedtime</option>
+                                    </select>
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Duration</label>
+                                    <select id="builder_duration" class="w-full px-2.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                                        <option value="5 Days">5 Days</option>
+                                        <option value="3 Days">3 Days</option>
+                                        <option value="7 Days">7 Days</option>
+                                        <option value="10 Days">10 Days</option>
+                                        <option value="14 Days">14 Days</option>
+                                        <option value="30 Days">30 Days (1 Mo)</option>
+                                    </select>
+                                </div>
+                                <div class="sm:col-span-2 flex items-end">
+                                    <button type="button" onclick="addMedicationFromBuilder()" class="w-full py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 transition-all flex items-center justify-center gap-1.5">
+                                        <i class="fas fa-plus"></i> Add
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Timing / Food Instructions row -->
+                            <div class="flex items-center gap-3 text-xs">
+                                <span class="text-[11px] font-bold text-slate-500">Instructions:</span>
+                                <input type="text" id="builder_timing" placeholder="e.g. After meals, drink plenty of water"
+                                       class="flex-1 px-3 py-1.5 rounded-xl text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                            </div>
+
+                            <!-- Prescribed Medication Regimen Table (Visual items one below the other) -->
+                            <div class="mt-3">
+                                <div class="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                                    <span>Prescribed Medication Regimen:</span>
+                                    <span id="medCountBadge" class="text-[10px] text-slate-400 font-mono">0 medications</span>
+                                </div>
+                                
+                                <div id="medicationItemList" class="space-y-2">
+                                    <!-- Populated dynamically via JavaScript -->
+                                    <div id="emptyMedsPlaceholder" class="p-6 rounded-2xl bg-white dark:bg-slate-900/60 border border-dashed border-slate-200 dark:border-slate-800 text-center text-slate-400 text-xs">
+                                        <i class="fas fa-pills text-lg mb-1 block text-slate-300 dark:text-slate-700"></i>
+                                        No medications added yet. Use the quick picks or builder above to add medications.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fallback Freeform Quill Editor (Hidden by default, toggleable) -->
+                        <div id="freeformRxContainer" class="hidden space-y-2">
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">Freeform Prescription Text</label>
+                            <div id="prescription-editor"></div>
+                        </div>
+
+                        <!-- Synchronized Form Input -->
                         <input type="hidden" name="prescription" id="prescription-input">
                     </div>
 
-                    <!-- Submit Buttons -->
+                    <!-- Physician Clinical Remarks & Patient Advice -->
+                    <div>
+                        <label for="remarks" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                            {% trans "Doctor Remarks & Follow-up Instructions" %}
+                        </label>
+                        <textarea name="remarks" id="remarks" rows="2" placeholder="Dietary precautions, return warning signs, or review in 1 week if symptoms persist..."
+                                  class="w-full p-3.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
+                    </div>
+
+                    <!-- Post-Consultation Workflow Options -->
+                    <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 space-y-2.5">
+                        <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-500">Post-Consultation Automation:</span>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                            <label class="flex items-center gap-2.5 cursor-pointer">
+                                <input type="checkbox" name="mark_completed" value="1" checked class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500 border-slate-300">
+                                <span class="text-slate-700 dark:text-slate-300 font-medium">Mark linked appointment as <strong>Completed</strong></span>
+                            </label>
+                            <label class="flex items-center gap-2.5 cursor-pointer">
+                                <input type="checkbox" name="create_invoice" value="1" class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300">
+                                <span class="text-slate-700 dark:text-slate-300 font-medium">Proceed directly to <strong>Billing & Invoicing</strong></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Submit & Action Buttons -->
                     <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
-                        <a href="{% url 'show_patient_details' %}?patient_id={{ patient_id }}" class="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100">
+                        <a href="{% url 'show_patient_details' %}?patient_id={{ patient_id }}" class="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 transition-colors">
                             {% trans "Cancel" %}
                         </a>
-                        <button type="submit" class="px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 hover:shadow-lg transition-all">
-                            {% trans "Save Medical Record" %}
+                        <button type="submit" id="saveConsultationBtn" class="px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 hover:shadow-lg transition-all flex items-center gap-2">
+                            <i class="fas fa-check-double"></i>
+                            <span>{% trans "Save Consultation Record & Issue Rx" %}</span>
                         </button>
                     </div>
                 </form>
@@ -136,7 +403,13 @@
 
 <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
 <script>
+    let prescribedMeds = [];
+    let isFreeformMode = false;
+    let detailsEditor;
+    let prescriptionEditor;
+
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Top Header mount
         const headerMount = document.getElementById('react-top-header');
         if (headerMount && (window.CmsTopHeader || window.ImhotepTopHeader)) {
             window.mountReactComponent((window.CmsTopHeader || window.ImhotepTopHeader), headerMount, {
@@ -149,7 +422,8 @@
             });
         }
 
-        var detailsEditor = new Quill('#details-editor', {
+        // Details Editor
+        detailsEditor = new Quill('#details-editor', {
             theme: 'snow',
             modules: {
                 toolbar: [
@@ -158,10 +432,11 @@
                     ['clean']
                 ]
             },
-            placeholder: 'Enter clinical findings, symptoms, diagnosis...'
+            placeholder: 'Enter clinical findings, symptoms, diagnosis, and physical examination notes...'
         });
 
-        var prescriptionEditor = new Quill('#prescription-editor', {
+        // Freeform Prescription Editor (backup)
+        prescriptionEditor = new Quill('#prescription-editor', {
             theme: 'snow',
             modules: {
                 toolbar: [
@@ -170,13 +445,170 @@
                     ['clean']
                 ]
             },
-            placeholder: 'Dosage: 1 Tab every 8 hours after meals...'
+            placeholder: 'e.g. Amoxicillin 500mg - 1 capsule twice daily for 7 days after meals...'
         });
 
-        document.getElementById('medicalRecordForm').addEventListener('submit', function() {
+        // Handle Ambient Scribe text insertion
+        window.insertScribeSoapNotes = function(soapText) {
+            if (soapText && detailsEditor) {
+                const current = detailsEditor.root.innerHTML;
+                detailsEditor.root.innerHTML = current + "<br/>" + soapText;
+            }
+        };
+
+        // Form submission serialization
+        document.getElementById('medicalRecordForm').addEventListener('submit', function(e) {
+            // Sync details
             document.getElementById('details-input').value = detailsEditor.root.innerHTML;
-            document.getElementById('prescription-input').value = prescriptionEditor.root.innerHTML;
+
+            // Sync prescription
+            if (isFreeformMode) {
+                document.getElementById('prescription-input').value = prescriptionEditor.root.innerHTML;
+            } else {
+                if (prescribedMeds.length > 0) {
+                    // Compile into newline-separated list with distinct rows
+                    const lines = prescribedMeds.map((m, idx) => {
+                        return `${m.name} (${m.form}) — Take ${m.frequency}, ${m.timing} for ${m.duration}`;
+                    });
+                    document.getElementById('prescription-input').value = lines.join('\n');
+                } else {
+                    const freeText = prescriptionEditor.getText().trim();
+                    document.getElementById('prescription-input').value = freeText || "Standard Clinical Observation & Routine Care";
+                }
+            }
         });
     });
+
+    // Quick Diagnosis insertion
+    function appendDiagnosis(diag) {
+        if (!detailsEditor) return;
+        const current = detailsEditor.getText().trim();
+        if (!current) {
+            detailsEditor.root.innerHTML = `<p><strong>Clinical Diagnosis:</strong> ${diag}</p><p><strong>Findings:</strong> Patient presents with mild symptomatic complaints consistent with diagnosis.</p>`;
+        } else {
+            detailsEditor.root.innerHTML += `<p><strong>Diagnosis Note:</strong> ${diag}</p>`;
+        }
+    }
+
+    // Smart Drug selection helper
+    function selectCommonDrug(name, form, freq, duration, timing) {
+        document.getElementById('builder_med_name').value = name;
+        document.getElementById('builder_form').value = form;
+        document.getElementById('builder_freq').value = freq;
+        document.getElementById('builder_duration').value = duration;
+        document.getElementById('builder_timing').value = timing;
+    }
+
+    // Add medication to active regimen
+    function addMedicationFromBuilder() {
+        const name = document.getElementById('builder_med_name').value.trim();
+        const form = document.getElementById('builder_form').value;
+        const freq = document.getElementById('builder_freq').value;
+        const duration = document.getElementById('builder_duration').value;
+        const timing = document.getElementById('builder_timing').value.trim() || 'After meals';
+
+        if (!name) {
+            alert('Please enter medication name and strength.');
+            document.getElementById('builder_med_name').focus();
+            return;
+        }
+
+        prescribedMeds.push({
+            id: Date.now(),
+            name: name,
+            form: form,
+            frequency: freq,
+            duration: duration,
+            timing: timing
+        });
+
+        // Reset inputs
+        document.getElementById('builder_med_name').value = '';
+        renderMedicationList();
+    }
+
+    // Remove medication
+    function removeMedication(id) {
+        prescribedMeds = prescribedMeds.filter(m => m.id !== id);
+        renderMedicationList();
+    }
+
+    // Render Medication List in UI
+    function renderMedicationList() {
+        const container = document.getElementById('medicationItemList');
+        const badge = document.getElementById('medCountBadge');
+        badge.innerText = `${prescribedMeds.length} medication${prescribedMeds.length === 1 ? '' : 's'}`;
+
+        if (prescribedMeds.length === 0) {
+            container.innerHTML = `
+                <div id="emptyMedsPlaceholder" class="p-6 rounded-2xl bg-white dark:bg-slate-900/60 border border-dashed border-slate-200 dark:border-slate-800 text-center text-slate-400 text-xs">
+                    <i class="fas fa-pills text-lg mb-1 block text-slate-300 dark:text-slate-700"></i>
+                    No medications added yet. Use the quick picks or builder above to add medications.
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        prescribedMeds.forEach((m, idx) => {
+            html += `
+                <div class="flex items-center justify-between p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:border-sky-300 transition-all">
+                    <div class="flex items-center gap-3">
+                        <span class="w-6 h-6 rounded-lg bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 font-bold text-xs flex items-center justify-center shrink-0">
+                            ${idx + 1}
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">℞ ${escapeHtml(m.name)}</span>
+                                <span class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-semibold text-slate-600 dark:text-slate-400">${escapeHtml(m.form)}</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-3 mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                                <span class="flex items-center gap-1 font-semibold text-sky-700 dark:text-sky-300">
+                                    <i class="fas fa-clock text-[10px]"></i> ${escapeHtml(m.frequency)}
+                                </span>
+                                <span>•</span>
+                                <span><i class="fas fa-calendar-day text-[10px]"></i> ${escapeHtml(m.duration)}</span>
+                                <span>•</span>
+                                <span class="text-amber-700 dark:text-amber-300"><i class="fas fa-utensils text-[10px]"></i> ${escapeHtml(m.timing)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" onclick="removeMedication(${m.id})" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors" title="Remove medication">
+                        <i class="fas fa-trash-can text-xs"></i>
+                    </button>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    // Toggle between visual builder and freeform text
+    function toggleRxEditorMode() {
+        isFreeformMode = !isFreeformMode;
+        const builder = document.getElementById('smartDrugBuilder');
+        const freeform = document.getElementById('freeformRxContainer');
+        const label = document.getElementById('rxModeLabel');
+
+        if (isFreeformMode) {
+            builder.classList.add('hidden');
+            freeform.classList.remove('hidden');
+            label.innerText = "Smart Builder Mode";
+        } else {
+            freeform.classList.add('hidden');
+            builder.classList.remove('hidden');
+            label.innerText = "Freeform Editor";
+        }
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
 </script>
 {% endblock %}

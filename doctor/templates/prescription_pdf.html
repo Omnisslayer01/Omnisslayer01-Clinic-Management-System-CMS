@@ -148,6 +148,66 @@
             font-size: 14px;
             color: #555;
         }
+        .meds-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            font-size: 12px;
+        }
+        .meds-table th {
+            background-color: #0f2b5c;
+            color: #ffffff;
+            padding: 8px 10px;
+            font-weight: bold;
+            text-align: left;
+            border: 1px solid #0f2b5c;
+        }
+        .meds-table td {
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            vertical-align: middle;
+        }
+        .row-even {
+            background-color: #ffffff;
+        }
+        .row-odd {
+            background-color: #f8fafc;
+        }
+        .med-name {
+            font-weight: bold;
+            color: #0f172a;
+        }
+        .med-dir {
+            color: #334155;
+        }
+        .clinical-box {
+            border: 1px solid #bae6fd;
+            background-color: #f0f9ff;
+            padding: 10px 14px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        .clinical-box h4 {
+            margin: 0 0 5px 0;
+            color: #0284c7;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        .remarks-box {
+            border: 1px solid #fef08a;
+            background-color: #fefce8;
+            padding: 10px 14px;
+            margin-top: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .remarks-box h4 {
+            margin: 0 0 5px 0;
+            color: #b45309;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
@@ -159,44 +219,94 @@
                     <img src="{{ clinic_logo_path }}" alt="Clinic Logo" class="logo">
                 {% endif %}
                 <div class="clinic-details">
-                    <h3 style="margin: 0;">Dr. {{ doctor_name }}</h3>
-                    <p style="margin: 0;">{{ doctor_specialization }}</p>
+                    <h2 style="margin: 0; color: #0f2b5c;">{{ doctor_profile.clinic.name|default:"CMS CLINICAL MEDICAL CENTER"|upper }}</h2>
+                    <h3 style="margin: 3px 0 0 0; color: #334155;">Dr. {{ doctor_name }}</h3>
+                    <p style="margin: 2px 0 0 0; font-size: 11px; color: #64748b;">{{ doctor_specialization|default:"General Clinical Practice" }}</p>
                 </div>
             </div>
             <div class="header-right">
-                <p style="margin: 0;">Date: {{ formatted_date }}</p>
+                <p style="margin: 0; font-weight: bold; color: #0284c7;">OFFICIAL E-PRESCRIPTION</p>
+                <p style="margin: 3px 0 0 0; font-size: 12px;">Rx ID: #RX-{{ medical_record.id }}</p>
+                <p style="margin: 2px 0 0 0; font-size: 12px;">Date: {{ formatted_date }}</p>
             </div>
         </div>
         
-        <h1 class="prescription-title">{% trans "PRESCRIPTION" %}</h1>
-        
         <div class="patient-info">
-            <h3>{% trans "Patient Information" %}</h3>
-            <p>Name: <span {% if has_arabic_name %}class="rtl"{% endif %}>{{ patient.name }}</span></p>
-            <p>Gender: {{ patient.gender }}</p>
-            {% if patient.date_of_birth %}
-            <p>DOB: {{ patient.date_of_birth }}</p>
+            <h3 style="margin: 0 0 8px 0; color: #0f2b5c; font-size: 13px; text-transform: uppercase;">{% trans "Patient Demographics" %}</h3>
+            <table style="width: 100%; border: none; font-size: 12px;">
+                <tr>
+                    <td style="border: none; padding: 3px 0; width: 50%;"><strong>Patient Name:</strong> <span {% if has_arabic_name %}class="rtl"{% endif %}>{{ patient.name }}</span></td>
+                    <td style="border: none; padding: 3px 0; width: 50%;"><strong>Patient ID:</strong> #{{ patient.id }}</td>
+                </tr>
+                <tr>
+                    <td style="border: none; padding: 3px 0;"><strong>Gender:</strong> {{ patient.gender|default:"Not Specified" }} {% if patient.date_of_birth %}| <strong>DOB:</strong> {{ patient.date_of_birth }}{% endif %}</td>
+                    <td style="border: none; padding: 3px 0;"><strong>Contact:</strong> {{ patient.phone_number|default:"N/A" }}</td>
+                </tr>
+            </table>
+        </div>
+
+        {% if medical_record.details %}
+        <div class="clinical-box">
+            <h4>{% trans "Clinical Diagnosis & Findings" %}</h4>
+            <div style="font-size: 12px; color: #1e293b;">
+                {{ medical_record.details|striptags }}
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="prescription-content">
+            <h3 style="background-color: #0f2b5c; color: #ffffff; padding: 7px 10px; font-size: 12px; text-transform: uppercase; margin: 0;">
+                ℞ {% trans "Prescribed Medications & Regimen" %}
+            </h3>
+            {% if medication_items %}
+            <table class="meds-table">
+                <thead>
+                    <tr>
+                        <th style="width: 7%; text-align: center;">#</th>
+                        <th style="width: 45%;">{% trans "Medication & Dosage Form" %}</th>
+                        <th style="width: 48%;">{% trans "Directions / Frequency / Duration" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for med in medication_items %}
+                    <tr class="{% cycle 'row-even' 'row-odd' %}">
+                        <td style="text-align: center; font-weight: bold; color: #0284c7;">{{ forloop.counter }}</td>
+                        <td>
+                            <span class="med-name">{{ med.name }}</span>
+                        </td>
+                        <td>
+                            <span class="med-dir">{{ med.directions }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div style="white-space: pre-line; padding: 10px; background-color: #f8fafc; border: 1px solid #e2e8f0; font-size: 12px;">
+                {{ medical_record.prescription|linebreaksbr|safe }}
+            </div>
             {% endif %}
         </div>
-        
-        {% if medical_record.prescription %}
-        <div class="prescription-content rx-symbol">
-            <h3>{% trans "Prescription:" %}</h3>
-            <div {% if has_arabic %}class="rtl"{% endif %}>
-                {{ medical_record.prescription|safe }}
+
+        {% if medical_record.remarks %}
+        <div class="remarks-box">
+            <h4>{% trans "Doctor Remarks & Special Advice" %}</h4>
+            <div style="font-size: 12px; color: #78350f;">
+                {{ medical_record.remarks }}
             </div>
         </div>
         {% endif %}
         
         <div class="signature">
-            <p>{% trans "Doctor's Signature:" %}</p>
-            <p {% if has_arabic_doctor_name %}class="rtl"{% endif %}>Dr. {{ doctor_name }}</p>
-            <p {% if has_arabic_specialization %}class="rtl"{% endif %}>Specialization: {{ doctor_specialization }}</p>
+            <p style="margin: 0; font-size: 11px; color: #64748b;">{% trans "Digitally Certified & Approved by:" %}</p>
+            <p style="margin: 4px 0 0 0; font-weight: bold; font-size: 13px;" {% if has_arabic_doctor_name %}class="rtl"{% endif %}>Dr. {{ doctor_name }}</p>
+            <p style="margin: 2px 0 0 0; font-size: 11px; color: #64748b;" {% if has_arabic_specialization %}class="rtl"{% endif %}>{{ doctor_specialization }}</p>
+            <p style="margin: 2px 0 0 0; font-size: 10px; color: #94a3b8;">License / Reg No: CMS-DOC-{{ medical_record.doctor.user.id }}</p>
         </div>
         
         <div class="footer">
-            <p>{% trans "This is a computer-generated prescription and does not require a physical signature." %}</p>
-            <p class="clinic-name">{% trans "CMS - Clinic Management System" %}</p>
+            <p>{% trans "This is a computer-generated clinical prescription issued via Clinic Management System (CMS). Valid for dispensation at licensed pharmacies." %}</p>
+            <p class="clinic-name">{% trans "CMS - Clinic Management System · Confidential Patient Health Record" %}</p>
         </div>
     </div>
 </body>

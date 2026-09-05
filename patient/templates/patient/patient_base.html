@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="flex min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 transition-colors">
+  
+  <!-- Navigation Sidebar -->
+  {% include 'patient/patient_nav.html' %}
+
+  <!-- Main Body Column -->
+  <div class="flex-1 flex flex-col min-w-0">
+    
+    <!-- Top Responsive Header Bar -->
+    <header class="sticky top-0 z-20 h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-4 sm:px-6 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button type="button" onclick="handlePatientSidebarToggle()" class="lg:hidden p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+          <i class="fas fa-bars text-sm"></i>
+        </button>
+        <div>
+          <h2 class="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <span>{% block page_title %}Patient Portal{% endblock %}</span>
+          </h2>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">{% block page_subtitle %}Better Health, Brighter Days{% endblock %}</p>
+        </div>
+      </div>
+
+      <!-- Quick Actions / Search / Help -->
+      <div class="flex items-center gap-2.5">
+        <button type="button" onclick="openPatientAiModal()" class="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/70 border border-sky-200 dark:border-sky-800 hover:bg-sky-100 transition-colors">
+          <i class="fas fa-wand-magic-sparkles text-sky-600"></i>
+          <span>AI Symptom Matcher</span>
+        </button>
+        <a href="{% url 'patient_book_appointment' %}" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-500 shadow-sm shadow-sky-500/20 transition-all">
+          <i class="fas fa-plus text-[10px]"></i>
+          <span class="hidden sm:inline">Book Consultation</span>
+          <span class="sm:hidden">Book</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+      {% block patient_content %}{% endblock %}
+    </main>
+
+  </div>
+</div>
+
+<!-- Global AI Symptom Matcher Modal -->
+<div id="patientAiModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-150">
+    <div class="p-6 bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 text-white relative">
+      <button onclick="closePatientAiModal()" class="absolute top-5 right-5 text-white/80 hover:text-white text-lg">
+        <i class="fas fa-xmark"></i>
+      </button>
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-lg">
+          <i class="fas fa-wand-magic-sparkles"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-extrabold">Smart AI Doctor Recommender</h3>
+          <p class="text-xs text-sky-100">Describe what you are feeling to get matched with the right specialist</p>
+        </div>
+      </div>
+    </div>
+    <div class="p-6 space-y-4">
+      <div>
+        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+          What symptoms are you experiencing?
+        </label>
+        <textarea id="aiModalSymptomsInput" rows="3" placeholder="e.g., Persistent dry cough, mild fever and throat pain for 3 days..."
+                  class="w-full p-3.5 rounded-2xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
+      </div>
+
+      <!-- Quick symptom chips -->
+      <div class="flex flex-wrap gap-1.5">
+        <button type="button" onclick="fillSymptom('Fever, headache and sore throat')" class="text-[11px] px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-sky-50 hover:text-sky-600">Fever & Sore Throat</button>
+        <button type="button" onclick="fillSymptom('Chest discomfort and shortness of breath')" class="text-[11px] px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-sky-50 hover:text-sky-600">Chest Discomfort</button>
+        <button type="button" onclick="fillSymptom('Knee joint pain and stiffness in morning')" class="text-[11px] px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-sky-50 hover:text-sky-600">Joint / Knee Pain</button>
+        <button type="button" onclick="fillSymptom('Skin allergy, red rash and itching')" class="text-[11px] px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-sky-50 hover:text-sky-600">Skin Rash & Itch</button>
+      </div>
+
+      <button type="button" onclick="runAiDoctorMatch()" id="aiModalAnalyzeBtn" class="w-full py-3 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 shadow-md shadow-sky-500/20 transition-all">
+        <i class="fas fa-brain mr-1.5"></i>
+        <span>Analyze Symptoms & Match Doctors</span>
+      </button>
+
+      <!-- Results Display Container -->
+      <div id="aiModalResultsArea" class="hidden space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openPatientAiModal() {
+  document.getElementById('patientAiModal').classList.remove('hidden');
+}
+function closePatientAiModal() {
+  document.getElementById('patientAiModal').classList.add('hidden');
+}
+function fillSymptom(text) {
+  document.getElementById('aiModalSymptomsInput').value = text;
+}
+function runAiDoctorMatch() {
+  const input = document.getElementById('aiModalSymptomsInput').value.trim();
+  const resArea = document.getElementById('aiModalResultsArea');
+  const btn = document.getElementById('aiModalAnalyzeBtn');
+  if(!input) { alert('Please enter some symptoms first.'); return; }
+
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1.5"></i> Analyzing clinical markers...';
+  btn.disabled = true;
+
+  fetch('/patient/api/ai-recommend/?symptoms=' + encodeURIComponent(input))
+    .then(r => r.json())
+    .then(data => {
+      btn.innerHTML = '<i class="fas fa-brain mr-1.5"></i> Analyze Symptoms & Match Doctors';
+      btn.disabled = false;
+      resArea.classList.remove('hidden');
+
+      let html = `
+        <div class="p-3.5 rounded-2xl bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-[10px] uppercase font-bold tracking-wider text-sky-700 dark:text-sky-400">Target Clinical Specialty</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-200 dark:bg-sky-900 text-sky-800 dark:text-sky-300 font-mono">${data.recommended_specialty}</span>
+          </div>
+          <p class="text-xs text-slate-700 dark:text-slate-300">${data.clinical_rationale}</p>
+          <div class="mt-1.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">Urgency: ${data.urgency_level}</div>
+        </div>
+        <div class="text-xs font-bold text-slate-900 dark:text-white pt-1">Recommended Doctors:</div>
+        <div class="space-y-2">
+      `;
+
+      data.matching_doctors.forEach(doc => {
+        html += `
+          <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+            <div>
+              <h4 class="text-xs font-bold text-slate-900 dark:text-white">${doc.name}</h4>
+              <p class="text-[10px] text-slate-500">${doc.specialty} · ${doc.experience} · ★ ${doc.rating}</p>
+              <p class="text-[10px] text-slate-400">${doc.clinic} · Fee: ${doc.fee}</p>
+            </div>
+            <a href="${doc.book_url}" class="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-500 shadow-sm">
+              Book
+            </a>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      resArea.innerHTML = html;
+    })
+    .catch(err => {
+      btn.innerHTML = '<i class="fas fa-brain mr-1.5"></i> Analyze Symptoms & Match Doctors';
+      btn.disabled = false;
+      alert('Error analyzing symptoms. Please try again.');
+    });
+}
+window.openPatientAiModal = openPatientAiModal;
+</script>
+{% endblock %}

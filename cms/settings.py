@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'accounts',
     'doctor',
     'assistant',
+    'patient',
     'allauth',
     'allauth.account',
     'allauth.socialaccount',

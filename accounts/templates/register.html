@@ -115,12 +115,12 @@
                     </label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                            <i class="fas fa-user-md text-xs"></i>
+                            <i class="fas fa-users-gear text-xs"></i>
                         </div>
-                        <select id="user_type" name="user_type" required 
+                        <select id="user_type" name="user_type" required onchange="toggleRoleFields(this.value)"
                                 class="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
-                            <option value="" disabled>Select role</option>
-                            <option value="doctor" selected>Doctor / Practitioner</option>
+                            <option value="doctor" selected>Doctor / Healthcare Practitioner</option>
+                            <option value="patient">Patient / Individual</option>
                         </select>
                     </div>
                 </div>
@@ -135,7 +135,29 @@
                             <i class="fas fa-stethoscope text-xs"></i>
                         </div>
                         <input type="text" name="specialization" id="specialization" placeholder="e.g. Cardiology, General Medicine, Pediatrics"
-                               class="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                                class="w-full pl-10 pr-4 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                </div>
+
+                <!-- Patient Specific Fields -->
+                <div id="patient_fields" class="hidden space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label for="phone_number" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                                {% trans "Phone Number" %}
+                            </label>
+                            <input type="text" name="phone_number" id="phone_number" placeholder="+91 98234 56789"
+                                   class="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        </div>
+                        <div>
+                            <label for="gender" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                                {% trans "Gender" %}
+                            </label>
+                            <select name="gender" id="gender" class="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -189,4 +211,18 @@
         </div>
     </div>
 </section>
+
+<script>
+function toggleRoleFields(role) {
+    const docFields = document.getElementById('doctor_fields');
+    const patFields = document.getElementById('patient_fields');
+    if (role === 'patient') {
+        if (docFields) docFields.classList.add('hidden');
+        if (patFields) patFields.classList.remove('hidden');
+    } else {
+        if (docFields) docFields.classList.remove('hidden');
+        if (patFields) patFields.classList.add('hidden');
+    }
+}
+</script>
 {% endblock %}

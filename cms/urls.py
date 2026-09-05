@@ -53,6 +53,7 @@ urlpatterns = [
     path('', include('accounts.urls')),
     path('doctor/', include('doctor.urls')),
     path('assistant/', include('assistant.urls')),
+    path('patient/', include('patient.urls')),
     
     # Add these lines to serve service-worker.js from the root
     path('service-worker.js', 

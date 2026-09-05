@@ -3,6 +3,9 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 
+def generate_short_uuid():
+    return uuid.uuid4().hex[:16].upper()
+
 class Clinic(models.Model):
     name = models.CharField(max_length=100)
     address = models.CharField(max_length=200, blank=True, default='')
@@ -19,6 +22,12 @@ class DoctorProfile(models.Model):
     specialization = models.CharField(max_length=100)
     clinic_photo_path = models.CharField(max_length=100, default='', null=True, blank=True)
     clinic = models.ForeignKey(Clinic, on_delete=models.CASCADE, related_name='doctors', null=True, blank=True)
+    consultation_fee = models.DecimalField(max_digits=10, decimal_places=2, default=500.00)
+    experience_years = models.IntegerField(default=10)
+    rating = models.DecimalField(max_digits=3, decimal_places=1, default=4.9)
+    review_count = models.IntegerField(default=124)
+    bio = models.TextField(blank=True, default='Dedicated healthcare professional specializing in comprehensive patient diagnostics, preventive wellness, and evidence-based clinical treatment.')
+    clinic_address = models.CharField(max_length=255, blank=True, default='Sunrise Health Plaza, Pune')
 
     @property
     def logo_path(self):
@@ -72,6 +81,14 @@ class Patients(models.Model):
     allergies = models.CharField(max_length=500, blank=True, default='')
     active_medications = models.TextField(blank=True, default='')
     tags = models.CharField(max_length=255, blank=True, default='Routine')
+    blood_group = models.CharField(max_length=10, blank=True, default='O+')
+    address = models.TextField(blank=True, default='')
+    emergency_contact_name = models.CharField(max_length=100, blank=True, default='')
+    emergency_contact_phone = models.CharField(max_length=20, blank=True, default='')
+    preferred_language = models.CharField(max_length=30, default='English')
+    notify_sms = models.BooleanField(default=True)
+    notify_email = models.BooleanField(default=True)
+    notify_whatsapp = models.BooleanField(default=True)
 
     def __str__(self):
         clinic_str = self.clinic.name if self.clinic else "No Clinic"
@@ -228,7 +245,7 @@ class LabOrderTicket(models.Model):
         ('Completed', 'Completed'),
         ('Cancelled', 'Cancelled')
     )
-    ticket_id = models.CharField(max_length=30, unique=True, default=uuid.uuid4)
+    ticket_id = models.CharField(max_length=30, unique=True, default=generate_short_uuid)
     doctor = models.ForeignKey(DoctorProfile, on_delete=models.CASCADE, related_name='lab_orders')
     patient = models.ForeignKey(Patients, on_delete=models.CASCADE, related_name='lab_tickets')
     appointment = models.ForeignKey(Appointments, on_delete=models.SET_NULL, null=True, blank=True)
@@ -433,7 +450,7 @@ class BillingInvoice(models.Model):
         ('Overdue', 'Overdue'),
         ('Refunded', 'Refunded')
     )
-    invoice_id = models.CharField(max_length=30, unique=True, default=uuid.uuid4)
+    invoice_id = models.CharField(max_length=30, unique=True, default=generate_short_uuid)
     patient = models.ForeignKey(Patients, on_delete=models.CASCADE, related_name='invoices')
     doctor = models.ForeignKey(DoctorProfile, on_delete=models.CASCADE)
     appointment = models.ForeignKey(Appointments, on_delete=models.SET_NULL, null=True, blank=True)

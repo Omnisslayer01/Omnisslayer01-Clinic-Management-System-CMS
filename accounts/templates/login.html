@@ -107,12 +107,19 @@
                 </button>
             </form>
 
-            <!-- Try Demo Account Button -->
-            <div class="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
-                <a href="{% url 'demo_login' %}" class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-100 transition-all">
-                    <i class="fas fa-bolt text-amber-500"></i>
-                    <span>{% trans "Instant Live Demo Login" %}</span>
-                </a>
+            <!-- Try Demo Account Buttons -->
+            <div class="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
+                <div class="text-center text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-1">{% trans "1-Click Evaluation Logins" %}</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <a href="{% url 'demo_login' %}" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-100 transition-all">
+                        <i class="fas fa-user-md text-amber-500"></i>
+                        <span>{% trans "Demo Doctor" %}</span>
+                    </a>
+                    <a href="{% url 'demo_patient_login' %}" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100 transition-all">
+                        <i class="fas fa-heart-pulse text-emerald-500"></i>
+                        <span>{% trans "Demo Patient" %}</span>
+                    </a>
+                </div>
             </div>
 
             <!-- Footer Register Link -->

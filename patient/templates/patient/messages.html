@@ -1,0 +1,156 @@
+{% extends "patient/patient_base.html" %}
+{% load static i18n %}
+
+{% block page_title %}Doctor Communication Hub{% endblock %}
+{% block page_subtitle %}Secure in-app messaging with your physicians for follow-ups & clarifications{% endblock %}
+
+{% block patient_content %}
+<div class="h-[calc(100vh-8.5rem)] flex rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+  
+  <!-- LEFT COLUMN: DOCTORS SIDEBAR -->
+  <div class="w-full sm:w-80 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 {% if active_doctor %}hidden sm:flex{% endif %}">
+    <div class="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
+      <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-white">Physician Chats</h2>
+      <p class="text-[11px] text-slate-400 mt-0.5">Select a doctor to begin</p>
+    </div>
+
+    <div class="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 custom-scrollbar">
+      {% for doc in doctors %}
+        <a href="{% url 'patient_messages' %}?doctor_id={{ doc.id }}" 
+           class="p-3.5 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors {% if active_doctor.id == doc.id %}bg-sky-50/80 dark:bg-sky-950/40 border-l-4 border-sky-600{% endif %}">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm">
+            {{ doc.user.first_name|default:"D"|make_list|first|upper }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-xs font-bold text-slate-900 dark:text-white truncate">
+              Dr. {{ doc.user.get_full_name|default:doc.user.username }}
+            </h3>
+            <p class="text-[10px] text-sky-600 dark:text-sky-400 font-semibold truncate">{{ doc.specialization }}</p>
+            <p class="text-[10px] text-slate-400 truncate">{{ doc.clinic.name|default:"Sunrise Clinic" }}</p>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN: ACTIVE CHAT THREAD -->
+  <div class="flex-1 flex flex-col min-w-0 bg-slate-50/40 dark:bg-slate-950/40 {% if not active_doctor %}hidden sm:flex{% endif %}">
+    {% if active_doctor %}
+      <!-- Chat Header -->
+      <div class="p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <a href="{% url 'patient_messages' %}" class="sm:hidden text-slate-500 hover:text-slate-700 mr-1">
+            <i class="fas fa-arrow-left"></i>
+          </a>
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-white font-bold flex items-center justify-center text-xs shrink-0">
+            {{ active_doctor.user.first_name|default:"D"|make_list|first|upper }}
+          </div>
+          <div>
+            <h2 class="text-xs font-extrabold text-slate-900 dark:text-white">
+              Dr. {{ active_doctor.user.get_full_name|default:active_doctor.user.username }}
+            </h2>
+            <div class="flex items-center gap-1.5 text-[10px] text-slate-500">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span>{{ active_doctor.specialization }} · Typical response within 2 hours</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <a href="{% url 'patient_book_appointment' %}?doctor_id={{ active_doctor.id }}" class="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-500 shadow-sm shadow-sky-600/20 transition-all">
+            <i class="fas fa-calendar-check mr-1"></i> Book Visit
+          </a>
+        </div>
+      </div>
+
+      <!-- Message History Stream -->
+      <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 custom-scrollbar" id="messagesChatStream">
+        {% for msg in chat_messages %}
+          {% if msg.is_doctor_reply %}
+            <!-- Doctor Message (Left) -->
+            <div class="flex items-start gap-2.5 max-w-xl">
+              <div class="w-7 h-7 rounded-lg bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 font-bold flex items-center justify-center text-[10px] shrink-0">
+                Dr
+              </div>
+              <div>
+                <div class="p-3.5 rounded-2xl rounded-tl-none bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 shadow-sm">
+                  <div class="text-[9px] uppercase font-bold text-sky-600 mb-1 font-mono">{{ msg.category }}</div>
+                  <p class="whitespace-pre-line">{{ msg.message }}</p>
+                </div>
+                <span class="text-[9px] text-slate-400 mt-1 block ml-1">{{ msg.created_at|date:"g:i A, d M" }}</span>
+              </div>
+            </div>
+          {% else %}
+            <!-- Patient Message (Right) -->
+            <div class="flex items-start justify-end gap-2.5 max-w-xl ml-auto">
+              <div>
+                <div class="p-3.5 rounded-2xl rounded-tr-none bg-sky-600 text-white text-xs shadow-md shadow-sky-600/10">
+                  <div class="text-[9px] uppercase font-bold text-sky-200 mb-1 font-mono">{{ msg.category }}</div>
+                  <p class="whitespace-pre-line">{{ msg.message }}</p>
+                </div>
+                <span class="text-[9px] text-slate-400 mt-1 block text-right mr-1">{{ msg.created_at|date:"g:i A, d M" }}</span>
+              </div>
+            </div>
+          {% endif %}
+        {% empty %}
+          <div class="p-10 text-center text-slate-400 text-xs">
+            <i class="far fa-comments text-3xl mb-2 text-slate-300 dark:text-slate-600"></i>
+            <p>No messages in this chat yet. Send a query below to connect with Dr. {{ active_doctor.user.get_full_name }}.</p>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Quick Inquiry Chips & Input Box -->
+      <div class="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar text-[11px]">
+          <button type="button" onclick="fillQuickMsg('Dosage clarification: Should I continue this medication with food?')" class="shrink-0 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-sky-50 hover:text-sky-600">
+            Dosage Clarification
+          </button>
+          <button type="button" onclick="fillQuickMsg('Follow-up: My throat congestion has improved significantly.')" class="shrink-0 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-sky-50 hover:text-sky-600">
+            Post-visit Follow-up
+          </button>
+          <button type="button" onclick="fillQuickMsg('Requesting refill: Need renewal for 30 days blood pressure pills.')" class="shrink-0 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-sky-50 hover:text-sky-600">
+            Refill Request
+          </button>
+        </div>
+
+        <form action="{% url 'patient_messages' %}" method="post" class="flex items-center gap-2">
+          {% csrf_token %}
+          <input type="hidden" name="doctor_id" value="{{ active_doctor.id }}">
+          
+          <select name="category" class="w-32 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs shrink-0">
+            <option value="General Inquiry">General</option>
+            <option value="Prescription Refill">Refill</option>
+            <option value="Follow-up Question">Follow-up</option>
+            <option value="Lab Results Clarification">Lab Query</option>
+          </select>
+
+          <input type="text" name="message" id="messageChatInput" required placeholder="Type your message to Dr. {{ active_doctor.user.get_full_name }}..."
+                 class="flex-1 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500">
+
+          <button type="submit" class="px-4 py-2.5 rounded-xl font-bold text-white bg-sky-600 hover:bg-sky-500 shadow-sm shadow-sky-600/20 text-xs flex items-center gap-1.5 shrink-0">
+            <span>Send</span>
+            <i class="fas fa-paper-plane text-[10px]"></i>
+          </button>
+        </form>
+      </div>
+
+    {% else %}
+      <div class="flex-1 flex items-center justify-center p-8 text-center text-slate-400 text-xs">
+        Select a physician from the left sidebar to start messaging.
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+function fillQuickMsg(text) {
+  document.getElementById('messageChatInput').value = text;
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const stream = document.getElementById('messagesChatStream');
+  if(stream) stream.scrollTop = stream.scrollHeight;
+});
+</script>
+{% endblock %}

@@ -140,6 +140,14 @@ def show_patient_details(request):
         
     records_list = MedicalRecord.objects.filter(patient=patient_id).order_by('-date')
 
+    from .medical_records import parse_prescription_items
+    from .medcare_views import COMMON_DRUGS
+
+    for rec in records_list:
+        rec.parsed_meds = parse_prescription_items(rec.prescription)
+
+    active_med_items = parse_prescription_items(patient.active_medications) if getattr(patient, 'active_medications', None) else []
+
     if patient.date_of_birth:
         today = date.today()
         patient_birthdate = patient.date_of_birth
@@ -163,10 +171,13 @@ def show_patient_details(request):
 
     context = {
         "user_data": request.user,
+        "patient": patient,
         "patients": [patient],
         "records": records_list,
         "page_obj": page_obj,
-        "patient_age": patient_age
+        "patient_age": patient_age,
+        "active_med_items": active_med_items,
+        "common_drugs": COMMON_DRUGS,
     }
     return render(request, "show_patient_details.html", context)
 

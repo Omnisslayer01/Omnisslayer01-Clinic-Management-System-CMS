@@ -1,0 +1,277 @@
+{% extends "patient/patient_base.html" %}
+{% load static i18n %}
+
+{% block page_title %}Book Appointment{% endblock %}
+{% block page_subtitle %}Full 4-step guided consultation reservation{% endblock %}
+
+{% block patient_content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <!-- Header Card -->
+  <div class="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight">
+        Schedule Doctor Consultation
+      </h1>
+      <p class="text-xs text-slate-500 mt-0.5">
+        Follow the 4 simple steps to choose your specialty, doctor, date, and preferred time slot.
+      </p>
+    </div>
+    <div class="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+      <i class="fas fa-circle-check text-emerald-500"></i>
+      <span>Instant Confirmation</span>
+    </div>
+  </div>
+
+  <!-- Full Booking Form -->
+  <form action="{% url 'patient_book_appointment' %}" method="post" id="appointmentBookingForm" class="space-y-6">
+    {% csrf_token %}
+
+    <!-- STEP 1: CHOOSE SPECIALTY -->
+    <div class="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
+      <div class="flex items-center gap-2">
+        <span class="w-6 h-6 rounded-full bg-sky-600 text-white font-bold text-xs flex items-center justify-center">1</span>
+        <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-white">Choose Specialty / Type of Care</h2>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1" id="specialtyContainer">
+        {% for spec in specialties %}
+          <button type="button" onclick="selectSpecialty('{{ spec }}')" 
+                  data-specialty="{{ spec }}"
+                  class="specialty-pill p-3 rounded-2xl text-left border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 hover:border-sky-500 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-all">
+            <i class="fas fa-stethoscope text-sky-600 mb-1 block"></i>
+            <span class="text-xs font-bold text-slate-900 dark:text-white block truncate">{{ spec }}</span>
+          </button>
+        {% endfor %}
+      </div>
+      <input type="hidden" name="specialty" id="selectedSpecialtyInput" value="{{ selected_specialty }}">
+    </div>
+
+    <!-- STEP 2: SELECT DOCTOR -->
+    <div class="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-sky-600 text-white font-bold text-xs flex items-center justify-center">2</span>
+          <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-white">Select Doctor</h2>
+        </div>
+        <span class="text-[11px] text-slate-400" id="doctorFilterNote">Showing all specialists</span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="doctorsListContainer">
+        {% for doc in doctors %}
+          <label class="doctor-card cursor-pointer block p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-sky-500 hover:bg-sky-50/50 dark:hover:bg-sky-950/30 transition-all"
+                 data-doc-id="{{ doc.id }}"
+                 data-doc-spec="{{ doc.specialization }}"
+                 data-doc-fee="{{ doc.consultation_fee|default:500 }}">
+            <div class="flex items-start gap-3">
+              <input type="radio" name="doctor_id" value="{{ doc.id }}" 
+                     {% if selected_doctor_id == doc.id|stringformat:'s' or forloop.first and not selected_doctor_id %}checked{% endif %}
+                     onchange="onDoctorChanged({{ doc.id }}, 'Dr. {{ doc.user.get_full_name|default:doc.user.username }}', '{{ doc.specialization }}', {{ doc.consultation_fee|default:500 }})"
+                     class="mt-1 text-sky-600 focus:ring-sky-500">
+              <div class="min-w-0 flex-1">
+                <h3 class="text-xs font-bold text-slate-900 dark:text-white truncate">
+                  Dr. {{ doc.user.get_full_name|default:doc.user.username }}
+                </h3>
+                <p class="text-[11px] font-semibold text-sky-600 dark:text-sky-400 truncate">
+                  {{ doc.specialization }}
+                </p>
+                <div class="flex items-center gap-2 text-[10px] text-slate-500 mt-1">
+                  <span class="text-amber-500 font-bold"><i class="fas fa-star text-[9px]"></i> {{ doc.rating|default:"4.9" }}</span>
+                  <span>·</span>
+                  <span>{{ doc.experience_years|default:10 }} yrs exp</span>
+                  <span>·</span>
+                  <span class="font-extrabold text-slate-900 dark:text-white">₹{{ doc.consultation_fee|default:500|floatformat:0 }}</span>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-0.5 truncate">
+                  <i class="fas fa-location-dot text-[9px] mr-1"></i>{{ doc.clinic_address|default:"Sunrise Clinic, Pune" }}
+                </p>
+              </div>
+            </div>
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- STEP 3: PICK AVAILABLE DATE -->
+    <div class="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
+      <div class="flex items-center gap-2">
+        <span class="w-6 h-6 rounded-full bg-sky-600 text-white font-bold text-xs flex items-center justify-center">3</span>
+        <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-white">Pick an Available Date</h2>
+      </div>
+
+      <!-- Date selector pills -->
+      <div class="flex gap-2 overflow-x-auto pb-2 custom-scrollbar" id="datePillsContainer">
+        {% for d in available_dates %}
+          <button type="button" onclick="selectDate('{{ d.date_str }}', this)" 
+                  data-date="{{ d.date_str }}"
+                  class="date-pill shrink-0 p-3 rounded-2xl text-center border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 hover:border-sky-500 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-all {% if forloop.first %}border-sky-600 bg-sky-50 dark:bg-sky-950/70 font-bold{% endif %}">
+            <span class="text-[10px] uppercase block text-slate-400 font-bold">{{ d.day_name }}</span>
+            <span class="text-sm font-black text-slate-900 dark:text-white block mt-0.5">{{ d.formatted }}</span>
+            <span class="text-[9px] block text-emerald-600 font-semibold mt-0.5">Available</span>
+          </button>
+        {% endfor %}
+      </div>
+      <input type="hidden" name="date" id="selectedDateInput" value="{{ available_dates.0.date_str }}">
+    </div>
+
+    <!-- STEP 4: PICK TIME SLOT -->
+    <div class="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-sky-600 text-white font-bold text-xs flex items-center justify-center">4</span>
+          <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-900 dark:text-white">Select Consultation Time Slot</h2>
+        </div>
+        <span class="text-[11px] text-slate-500" id="slotStatusIndicator">20 mins per patient</span>
+      </div>
+
+      <div class="grid grid-cols-3 sm:grid-cols-6 gap-2" id="timeSlotsContainer">
+        {% for slot in standard_slots %}
+          <button type="button" onclick="selectSlot('{{ slot }}', this)"
+                  data-slot="{{ slot }}"
+                  class="slot-btn py-2.5 px-2 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:border-sky-500 hover:bg-sky-50 transition-all {% if forloop.first %}border-sky-600 bg-sky-600 text-white shadow-sm{% endif %}">
+            {{ slot }}
+          </button>
+        {% endfor %}
+      </div>
+      <input type="hidden" name="time_slot" id="selectedTimeSlotInput" value="{{ standard_slots.0 }}">
+    </div>
+
+    <!-- STEP 5: PATIENT DETAILS & CONFIRMATION SUMMARY -->
+    <div class="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-slate-900 to-sky-950 text-white shadow-xl space-y-4">
+      <h2 class="text-xs font-extrabold uppercase tracking-wider text-sky-300">Appointment Confirmation & Fee Summary</h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+        <div>
+          <label class="block text-[11px] text-slate-300 mb-1">Consultation For (Patient)</label>
+          <select name="family_member_id" class="w-full p-2.5 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none text-xs">
+            <option value="" class="text-slate-900" selected>Self ({{ patient.name }})</option>
+            {% for fam in family_members %}
+              <option value="{{ fam.id }}" class="text-slate-900">{{ fam.name }} ({{ fam.relationship }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-[11px] text-slate-300 mb-1">Reason for Consultation / Symptoms</label>
+          <input type="text" name="reason_for_visit" placeholder="e.g. Routine consultation, fever, blood pressure review"
+                 class="w-full p-2.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder-slate-400 focus:outline-none text-xs">
+        </div>
+      </div>
+
+      <!-- Fee Breakdown -->
+      <div class="p-4 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-between">
+        <div>
+          <span class="text-xs text-slate-300">Total Consultation Fee:</span>
+          <p class="text-[11px] text-emerald-300">Payable at clinic desk or via UPI</p>
+        </div>
+        <div class="text-2xl font-black text-white" id="summaryFeeDisplay">
+          ₹500
+        </div>
+      </div>
+
+      <button type="submit" class="w-full py-3.5 rounded-2xl text-xs font-bold text-sky-950 bg-white hover:bg-sky-50 shadow-lg shadow-black/20 transition-all">
+        <i class="fas fa-calendar-check mr-2 text-sky-600"></i>
+        <span>Confirm Appointment</span>
+      </button>
+    </div>
+
+  </form>
+
+</div>
+
+<script>
+let currentDoctorId = '{{ doctors.0.id }}';
+let currentDoctorName = '{{ doctors.0.user.get_full_name }}';
+let currentFee = '{{ doctors.0.consultation_fee|default:500 }}';
+
+function selectSpecialty(spec) {
+  document.getElementById('selectedSpecialtyInput').value = spec;
+  document.querySelectorAll('.specialty-pill').forEach(el => {
+    if(el.getAttribute('data-specialty') === spec) {
+      el.classList.add('border-sky-600', 'bg-sky-50', 'dark:bg-sky-950/60');
+    } else {
+      el.classList.remove('border-sky-600', 'bg-sky-50', 'dark:bg-sky-950/60');
+    }
+  });
+
+  // Filter doctor cards
+  let count = 0;
+  document.querySelectorAll('.doctor-card').forEach(card => {
+    const cardSpec = card.getAttribute('data-doc-spec');
+    if(!spec || spec === 'All' || cardSpec.toLowerCase().includes(spec.toLowerCase()) || spec.toLowerCase().includes(cardSpec.toLowerCase())) {
+      card.style.display = 'block';
+      count++;
+    } else {
+      card.style.display = 'none';
+    }
+  });
+  document.getElementById('doctorFilterNote').innerText = 'Showing ' + count + ' ' + spec + ' specialists';
+}
+
+function onDoctorChanged(id, name, spec, fee) {
+  currentDoctorId = id;
+  currentDoctorName = name;
+  currentFee = fee;
+  document.getElementById('summaryFeeDisplay').innerText = '₹' + Math.round(fee);
+  refreshSlots();
+}
+
+function selectDate(dateStr, btn) {
+  document.getElementById('selectedDateInput').value = dateStr;
+  document.querySelectorAll('.date-pill').forEach(el => {
+    el.classList.remove('border-sky-600', 'bg-sky-50', 'dark:bg-sky-950/70', 'font-bold');
+  });
+  btn.classList.add('border-sky-600', 'bg-sky-50', 'dark:bg-sky-950/70', 'font-bold');
+  refreshSlots();
+}
+
+function selectSlot(slot, btn) {
+  document.getElementById('selectedTimeSlotInput').value = slot;
+  document.querySelectorAll('.slot-btn').forEach(el => {
+    el.classList.remove('border-sky-600', 'bg-sky-600', 'text-white');
+    el.classList.add('bg-slate-50', 'dark:bg-slate-800', 'text-slate-800', 'dark:text-slate-200');
+  });
+  btn.classList.add('border-sky-600', 'bg-sky-600', 'text-white');
+  btn.classList.remove('bg-slate-50', 'dark:bg-slate-800', 'text-slate-800', 'dark:text-slate-200');
+}
+
+function refreshSlots() {
+  const dateStr = document.getElementById('selectedDateInput').value;
+  const docInput = document.querySelector('input[name="doctor_id"]:checked');
+  const docId = docInput ? docInput.value : currentDoctorId;
+  if(!dateStr || !docId) return;
+
+  fetch(`/patient/api/available-slots/?doctor_id=${docId}&date=${dateStr}`)
+    .then(r => r.json())
+    .then(data => {
+      if(data.status === 'success' && data.slots) {
+        const container = document.getElementById('timeSlotsContainer');
+        container.innerHTML = '';
+        data.slots.forEach((s, idx) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'slot-btn py-2.5 px-2 rounded-xl text-xs font-bold border transition-all ';
+          if(s.is_available) {
+            btn.className += (idx === 0) ? 'border-sky-600 bg-sky-600 text-white' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:border-sky-500';
+            btn.onclick = () => selectSlot(s.time, btn);
+            btn.innerText = s.time;
+          } else {
+            btn.className += 'border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 text-slate-400 cursor-not-allowed opacity-50 line-through';
+            btn.disabled = true;
+            btn.innerText = s.time;
+          }
+          container.appendChild(btn);
+          if(idx === 0 && s.is_available) {
+            document.getElementById('selectedTimeSlotInput').value = s.time;
+          }
+        });
+      }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const selectedSpec = '{{ selected_specialty }}';
+  if(selectedSpec) selectSpecialty(selectedSpec);
+});
+</script>
+{% endblock %}

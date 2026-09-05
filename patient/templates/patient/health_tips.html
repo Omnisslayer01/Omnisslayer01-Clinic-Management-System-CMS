@@ -1,0 +1,123 @@
+{% extends "patient/patient_base.html" %}
+{% load static i18n %}
+
+{% block page_title %}Health & Wellness Feed{% endblock %}
+{% block page_subtitle %}Daily preventative care guides, nutrition insights & healthy living tips{% endblock %}
+
+{% block patient_content %}
+<div class="space-y-6">
+
+  <!-- Header Banner -->
+  <div class="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xl shadow-emerald-500/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div class="max-w-xl">
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-xs font-semibold mb-2">
+        <i class="fas fa-seedling text-emerald-200"></i>
+        <span>Clinical Wellness Knowledge Base</span>
+      </div>
+      <h1 class="text-xl sm:text-2xl font-black tracking-tight">Better Health, Brighter Days Feed</h1>
+      <p class="text-xs text-emerald-100 mt-1">
+        Physician-verified daily habits, sleep optimization, cardiac longevity, and metabolic nutrition guides.
+      </p>
+    </div>
+    <div class="shrink-0 text-center sm:text-right">
+      <div class="text-2xl font-black">{{ tips.count }}</div>
+      <div class="text-[10px] text-emerald-200 uppercase tracking-wider">Curated Articles</div>
+    </div>
+  </div>
+
+  <!-- Search & Category Filter Pills -->
+  <div class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
+    <form action="{% url 'patient_health_tips' %}" method="get" class="flex flex-col sm:flex-row gap-2">
+      <div class="relative flex-1">
+        <input type="text" name="q" value="{{ query }}" placeholder="Search health topics, keywords, vitamins..."
+               class="w-full pl-9 pr-4 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+          <i class="fas fa-search text-xs"></i>
+        </div>
+      </div>
+      <button type="submit" class="px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition-all">
+        Search Tips
+      </button>
+    </form>
+
+    <!-- Category Pills -->
+    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar text-xs">
+      <a href="{% url 'patient_health_tips' %}" class="shrink-0 px-3 py-1 rounded-full border {% if not selected_category %}bg-emerald-600 border-emerald-600 text-white font-bold{% else %}border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100{% endif %}">
+        All Categories
+      </a>
+      {% for cat in categories %}
+        <a href="{% url 'patient_health_tips' %}?category={{ cat }}" class="shrink-0 px-3 py-1 rounded-full border {% if selected_category == cat %}bg-emerald-600 border-emerald-600 text-white font-bold{% else %}border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100{% endif %}">
+          {{ cat }}
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Articles Feed Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {% for tip in tips %}
+      <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4">
+        
+        <div class="space-y-3">
+          <div class="flex items-center justify-between text-xs">
+            <span class="px-2.5 py-0.5 rounded-full font-bold bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-mono text-[10px] uppercase">
+              {{ tip.category }}
+            </span>
+            <span class="text-[11px] text-slate-400">
+              <i class="far fa-clock mr-1"></i> {{ tip.read_time }}
+            </span>
+          </div>
+
+          <h3 class="text-sm font-extrabold text-slate-900 dark:text-white leading-snug">
+            {{ tip.title }}
+          </h3>
+
+          <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+            {{ tip.summary }}
+          </p>
+
+          <!-- Article Content Excerpt -->
+          <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+            {{ tip.content }}
+          </div>
+        </div>
+
+        <!-- Card Footer -->
+        <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+          <span class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 truncate max-w-[220px]">
+            <i class="fas fa-circle-check"></i>
+            <span class="truncate">{{ tip.doctor_endorsement }}</span>
+          </span>
+
+          <button type="button" onclick="likeTip({{ tip.id }}, this)" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all">
+            <i class="fas fa-heart text-rose-500"></i>
+            <span id="likeCount-{{ tip.id }}">{{ tip.likes_count }}</span>
+          </button>
+        </div>
+
+      </div>
+    {% empty %}
+      <div class="col-span-full p-12 text-center rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        <i class="fas fa-seedling text-4xl text-slate-300 dark:text-slate-600 mb-2"></i>
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">No wellness articles found</h3>
+        <p class="text-xs text-slate-500 mt-1">Try another category or clear your search query.</p>
+      </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+<script>
+function likeTip(tipId, btn) {
+  fetch('/patient/health-tips/like/' + tipId + '/')
+    .then(r => r.json())
+    .then(data => {
+      if(data.status === 'success') {
+        document.getElementById('likeCount-' + tipId).innerText = data.likes_count;
+        btn.classList.add('scale-110');
+        setTimeout(() => btn.classList.remove('scale-110'), 200);
+      }
+    });
+}
+</script>
+{% endblock %}

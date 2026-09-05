@@ -138,14 +138,22 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-right">
                                     <div class="flex items-center justify-end gap-2">
                                         {% if appointment.status == 'scheduled' %}
+                                        <a href="{% url 'add_medical_record' %}?patient_id={{ appointment.patient.id }}&appointment_id={{ appointment.id }}" class="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium text-[11px] shadow-sm transition-all flex items-center gap-1" title="Conduct Consultation & Prescribe">
+                                            <i class="fas fa-stethoscope text-[10px]"></i>
+                                            <span>Consult / Rx</span>
+                                        </a>
                                         <form method="POST" action="{% url 'mark_appointment' %}" class="inline">
                                             {% csrf_token %}
                                             <input type="hidden" name="appointment_id" value="{{ appointment.id }}">
-                                            <button type="submit" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-[11px] shadow-sm transition-all">
+                                            <button type="submit" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-[11px] shadow-sm transition-all" title="Mark consultation done">
                                                 <i class="fas fa-check mr-1"></i> Done
                                             </button>
                                         </form>
                                         {% else %}
+                                        <a href="{% url 'add_medical_record' %}?patient_id={{ appointment.patient.id }}&appointment_id={{ appointment.id }}" class="px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 font-medium text-[11px] shadow-sm transition-all flex items-center gap-1" title="View or Add Follow-up Rx">
+                                            <i class="fas fa-prescription text-[10px]"></i>
+                                            <span>Consult Record</span>
+                                        </a>
                                         <form method="POST" action="{% url 'mark_appointment' %}" class="inline">
                                             {% csrf_token %}
                                             <input type="hidden" name="appointment_id" value="{{ appointment.id }}">
@@ -154,6 +162,11 @@
                                             </button>
                                         </form>
                                         {% endif %}
+
+                                        <a href="{% url 'medcare_billing' %}?appointment_id={{ appointment.id }}&patient_id={{ appointment.patient.id }}" class="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/80 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-medium text-[11px] border border-emerald-200 dark:border-emerald-800 shadow-sm transition-all flex items-center gap-1" title="Bill this consultation">
+                                            <i class="fas fa-file-invoice-dollar text-[10px]"></i>
+                                            <span>Bill</span>
+                                        </a>
 
                                         <a href="{% url 'appointment_detail' %}?appointment_id={{ appointment.id }}" class="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100" title="Patient Chart">
                                             <i class="fas fa-eye"></i>

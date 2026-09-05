@@ -30,10 +30,14 @@ def _redirect_after_login(request, user):
         return redirect("doctor_dashboard")
     if hasattr(user, 'is_assistant') and user.is_assistant():
         return redirect("assistant_dashboard")
+    if hasattr(user, 'is_patient') and user.is_patient():
+        return redirect("patient_home")
     if hasattr(user, 'is_clinic_admin') and (user.is_clinic_admin() or user.is_super_admin() or user.is_staff or user.is_superuser):
         return redirect("/admin/")
     if getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False):
         return redirect("/admin/")
+    if getattr(user, 'user_type', None) == 'patient':
+        return redirect("patient_home")
     return redirect("landing_page")
 
 def _send_verification_email(user, email_address=None):
@@ -131,6 +135,22 @@ def register(request):
                 user=user,
                 specialization=specialization,
                 clinic=clinic
+            )
+        elif user_type == 'patient':
+            from doctor.models import Patients, Clinic, DoctorProfile
+            clinic = Clinic.objects.first()
+            first_doc = DoctorProfile.objects.first()
+            patient_name = user.get_full_name().strip() or user.username
+            Patients.objects.create(
+                user=user,
+                name=patient_name,
+                email=user.email,
+                phone_number=request.POST.get('phone_number', '+91 98234 56789'),
+                gender=request.POST.get('gender', 'Male'),
+                clinic=clinic,
+                doctor=first_doc,
+                blood_group=request.POST.get('blood_group', 'O+'),
+                allergies=request.POST.get('allergies', 'None')
             )
 
         # Send verification email
@@ -266,6 +286,137 @@ def demo_login(request):
     messages.success(request, _("Logged in as Demo Doctor. Some features are restricted."))
     messages.info(request, _("Note: You cannot change password, email, username, or name in demo mode."))
     return redirect("doctor_dashboard")
+
+def demo_patient_login(request):
+    """Login as demo patient account with rich pre-seeded data."""
+    demo_username = "demo_patient"
+    demo_user = User.objects.filter(username=demo_username).first()
+
+    if not demo_user:
+        demo_user = User.objects.create_user(
+            username=demo_username,
+            email="aarav.patient@clinicms.com",
+            password="demo123456",
+            first_name="Aarav",
+            last_name="Sharma",
+            email_verify=True,
+            user_type='patient',
+            is_demo=True
+        )
+
+    from doctor.models import Patients, Clinic, DoctorProfile, Appointments, MedicalRecord, LabOrderTicket
+    from patient.models import FamilyMember, PatientDocument, VaccinationRecord, PatientDoctorMessage
+    from django.utils import timezone
+    import datetime
+
+    clinic = Clinic.objects.first()
+    first_doc = DoctorProfile.objects.first()
+
+    patient, created = Patients.objects.get_or_create(
+        user=demo_user,
+        defaults={
+            'name': 'Aarav Sharma',
+            'email': demo_user.email,
+            'phone_number': '+91 98234 56789',
+            'gender': 'Male',
+            'clinic': clinic,
+            'doctor': first_doc,
+            'date_of_birth': datetime.date(1995, 6, 15),
+            'blood_group': 'B+',
+            'allergies': 'Penicillin, Sulfa drugs',
+            'active_medications': "Amoxicillin 500mg - 1 capsule twice daily after meals (5 days)\nCetirizine 10mg - 1 tablet once daily at bedtime (7 days)",
+            'medical_history': 'Mild Bronchial Asthma, Allergic Rhinitis',
+            'address': 'Flat 402, Green Meadows, Senapati Bapat Road, Pune',
+            'emergency_contact_name': 'Priya Sharma (Spouse)',
+            'emergency_contact_phone': '+91 98234 56780'
+        }
+    )
+
+    # Seed demo appointments if empty
+    if Appointments.objects.filter(patient=patient).count() == 0 and first_doc:
+        today = datetime.date.today()
+        Appointments.objects.create(
+            doctor=first_doc,
+            clinic=first_doc.clinic,
+            patient=patient,
+            date=today + datetime.timedelta(days=2),
+            start_time=datetime.time(10, 30),
+            status='confirmed',
+            reason_for_visit='Quarterly Routine Health Checkup & Vitals'
+        )
+
+    # Seed demo consultation & prescription if empty
+    if MedicalRecord.objects.filter(patient=patient).count() == 0 and first_doc:
+        MedicalRecord.objects.create(
+            doctor=first_doc,
+            clinic=first_doc.clinic,
+            patient=patient,
+            date=timezone.now() - datetime.timedelta(days=14),
+            details='Vitals: BP 118/76 mmHg, Pulse 72 bpm, Temp 98.4°F, SpO2 99%. Patient reported mild upper respiratory congestion. Lungs clear bilaterally.',
+            remarks='Avoid cold beverages and dusty environments. Return for follow-up if symptoms persist beyond 5 days.',
+            prescription="Amoxicillin 500mg - 1 capsule twice daily after meals (5 days)\nCetirizine 10mg - 1 tablet once daily at bedtime (7 days)\nParacetamol 650mg - 1 tablet as needed for body ache"
+        )
+
+    # Seed demo lab ticket if empty
+    if LabOrderTicket.objects.filter(patient=patient).count() == 0 and first_doc:
+        LabOrderTicket.objects.create(
+            doctor=first_doc,
+            patient=patient,
+            test_name='Complete Blood Count (CBC)',
+            test_code='CBC-01',
+            status='Completed',
+            technician_name='Central Diagnostics Ltd',
+            clinical_notes='Routine wellness screening.',
+            result_summary='Hemoglobin: 14.2 g/dL (Normal: 13.0-17.0), Total WBC: 6,800 /uL, Platelets: 245,000 /uL. All cellular indices within optimal physiological limits.'
+        )
+
+    # Seed demo family members if empty
+    if FamilyMember.objects.filter(patient=patient).count() == 0:
+        FamilyMember.objects.create(
+            patient=patient,
+            name='Priya Sharma',
+            relationship='Spouse',
+            gender='Female',
+            date_of_birth=datetime.date(1996, 9, 20),
+            blood_group='O+',
+            allergies='None'
+        )
+        FamilyMember.objects.create(
+            patient=patient,
+            name='Ananya Sharma',
+            relationship='Child',
+            gender='Female',
+            date_of_birth=datetime.date(2021, 3, 10),
+            blood_group='B+',
+            allergies='Peanuts'
+        )
+
+    # Seed demo vaccinations if empty
+    if VaccinationRecord.objects.filter(patient=patient).count() == 0:
+        VaccinationRecord.objects.create(
+            patient=patient,
+            vaccine_name='COVID-19 Spikevax (Moderna)',
+            dose_number='Booster Dose',
+            date_administered=datetime.date(2025, 4, 12),
+            administered_by='Pune Municipal Vaccination Center',
+            batch_number='VAX-9082B',
+            status='Completed'
+        )
+        VaccinationRecord.objects.create(
+            patient=patient,
+            vaccine_name='Seasonal Quadrivalent Influenza',
+            dose_number='Annual 2026',
+            date_administered=datetime.date(2026, 1, 15),
+            administered_by='Apex Health Clinic',
+            batch_number='FLU-2026-X',
+            status='Completed'
+        )
+
+    backend = get_backends()[0]
+    demo_user.backend = f'{backend.__module__}.{backend.__class__.__name__}'
+    login(request, demo_user)
+    messages.success(request, f"Welcome to CMS Patient Portal, {demo_user.first_name}! Logged in as Demo Patient.")
+    return redirect("patient_home")
 
 class CustomPasswordResetView(PasswordResetView):
     template_name = 'password_reset.html'

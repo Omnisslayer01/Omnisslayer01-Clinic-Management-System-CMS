@@ -8,6 +8,7 @@
 <style>
     .medical-content {
         line-height: 1.6;
+        white-space: pre-line;
     }
     .medical-content ul { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
     .medical-content ol { list-style-type: decimal; padding-left: 1.25rem; margin-bottom: 0.75rem; }
@@ -59,9 +60,18 @@
                                 <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
                                     {{ patient.name }}
                                 </h1>
-                                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${patient.gender|lower == 'female' ? 'bg-pink-50 text-pink-700' : 'bg-blue-50 text-blue-700'}">
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold {% if patient.gender|lower == 'female' %}bg-pink-50 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300{% else %}bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300{% endif %}">
                                     {{ patient.gender|default:"Not specified" }}
                                 </span>
+                                {% if patient.allergies %}
+                                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-200 dark:border-rose-900 flex items-center gap-1">
+                                    <i class="fas fa-triangle-exclamation text-rose-500"></i> Allergies: {{ patient.allergies }}
+                                </span>
+                                {% else %}
+                                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                                    <i class="fas fa-shield-halved text-emerald-500"></i> NKDA
+                                </span>
+                                {% endif %}
                             </div>
 
                             <div class="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
@@ -95,7 +105,7 @@
                     <div class="flex flex-wrap items-center gap-3">
                         <a href="{% url 'add_medical_record' %}?patient_id={{ patient.id }}" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/20 hover:shadow-lg transition-all">
                             <i class="fas fa-file-medical"></i>
-                            <span>New Clinical Note</span>
+                            <span>New Consultation</span>
                         </a>
                         <a href="{% url 'schedule_appointment' %}?patient_id={{ patient.id }}" class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-all">
                             <i class="fas fa-calendar-plus"></i>
@@ -111,6 +121,24 @@
                         {% endif %}
                     </div>
                 </div>
+
+                <!-- Active Medications & Medical History Sub-bar -->
+                {% if patient.active_medications or patient.medical_history %}
+                <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    {% if patient.active_medications %}
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded-lg bg-sky-100 dark:bg-sky-950 text-sky-800 dark:text-sky-300 font-bold text-[10px] uppercase">Active Regimen:</span>
+                        <span class="text-slate-700 dark:text-slate-300 font-medium truncate max-w-md">{{ patient.active_medications }}</span>
+                    </div>
+                    {% endif %}
+                    {% if patient.medical_history %}
+                    <div class="flex items-center gap-2 text-slate-500">
+                        <i class="fas fa-book-medical text-slate-400"></i>
+                        <span class="truncate max-w-sm">{{ patient.medical_history }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
 
             <!-- Medical Records & Consultations Timeline -->
@@ -149,17 +177,25 @@
                             <!-- Action buttons -->
                             <div class="flex items-center gap-2">
                                 {% if record.prescription %}
-                                <a href="{% url 'generate_prescription_pdf' record.id %}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold hover:bg-emerald-100 transition-colors">
+                                <a href="{% url 'print_prescription' record.id %}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-xs font-semibold hover:bg-sky-100 transition-colors" title="Print Prescription">
+                                    <i class="fas fa-print"></i>
+                                    <span>Print</span>
+                                </a>
+                                <a href="{% url 'generate_prescription_pdf' record.id %}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold hover:bg-emerald-100 transition-colors" title="Download PDF">
                                     <i class="fas fa-file-pdf"></i>
-                                    <span>Download PDF</span>
+                                    <span>PDF</span>
                                 </a>
                                 <button type="button" 
                                         onclick="openSharePrescriptionModal({ recordId: {{ record.id }}, patientName: '{{ patient.name|escapejs }}', initialShareable: {{ record.is_share_link_active|yesno:'true,false' }}, initialShareUrl: '{{ record.get_share_url|escapejs }}', csrfToken: '{{ csrf_token }}' })"
-                                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-xs font-semibold hover:bg-sky-100 transition-colors">
+                                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:bg-slate-100 transition-colors" title="Share Digital Link">
                                     <i class="fas fa-share-nodes"></i>
-                                    <span>Share Link</span>
+                                    <span>Share</span>
                                 </button>
                                 {% endif %}
+                                <a href="{% url 'medcare_billing' %}?patient_id={{ patient.id }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-semibold hover:bg-amber-100 transition-colors" title="Create Invoice for Patient">
+                                    <i class="fas fa-file-invoice-dollar"></i>
+                                    <span>Bill</span>
+                                </a>
                                 {% if request.user.is_doctor %}
                                 <a href="{% url 'update_medical_record' %}?medical_record_id={{ record.id }}" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 transition-colors" title="Edit Record">
                                     <i class="fas fa-pen text-xs"></i>
@@ -194,17 +230,36 @@
 
                             <!-- E-Prescription -->
                             {% if record.prescription %}
-                            <div class="prescription-box p-4 rounded-2xl space-y-2">
+                            <div class="prescription-box p-4 rounded-2xl space-y-3">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-2 text-sky-800 dark:text-sky-300 font-bold text-xs">
-                                        <i class="fas fa-prescription text-sm"></i>
-                                        <span>Prescription (Rx)</span>
+                                        <i class="fas fa-prescription text-sm text-sky-600"></i>
+                                        <span>Prescription (Rx) & Medications</span>
                                     </div>
-                                    <span class="text-[10px] uppercase font-bold text-sky-600 dark:text-sky-400">Validated</span>
+                                    <span class="text-[10px] uppercase font-bold text-sky-600 dark:text-sky-400 bg-sky-100/70 dark:bg-sky-950/80 px-2 py-0.5 rounded-md">Validated Regimen</span>
                                 </div>
-                                <div class="text-slate-800 dark:text-slate-200 medical-content text-xs sm:text-sm">
-                                    {{ record.prescription|safe }}
+
+                                {% if record.parsed_meds %}
+                                <div class="space-y-1.5">
+                                    {% for med in record.parsed_meds %}
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-sky-100 dark:border-sky-900/50 text-xs gap-1 sm:gap-3">
+                                        <div class="flex items-center gap-2.5">
+                                            <span class="w-5 h-5 rounded-md bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 font-bold text-[10px] flex items-center justify-center shrink-0">
+                                                {{ med.number }}
+                                            </span>
+                                            <span class="font-bold text-slate-900 dark:text-white">℞ {{ med.name }}</span>
+                                        </div>
+                                        <div class="sm:text-right text-[11px] text-slate-600 dark:text-slate-300 pl-7 sm:pl-0">
+                                            <span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-medium">{{ med.directions }}</span>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
                                 </div>
+                                {% else %}
+                                <div class="text-slate-800 dark:text-slate-200 medical-content text-xs sm:text-sm" style="white-space: pre-line;">
+                                    {{ record.prescription }}
+                                </div>
+                                {% endif %}
                             </div>
                             {% endif %}
                         </div>
@@ -230,15 +285,25 @@
                 {% endif %}
 
                 {% else %}
-                <div class="p-12 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-center">
-                    <div class="w-16 h-16 mx-auto mb-3 rounded-2xl bg-sky-50 dark:bg-sky-950/60 flex items-center justify-center text-sky-500 text-2xl">
-                        <i class="far fa-folder-open"></i>
+                <div class="p-8 sm:p-12 rounded-3xl bg-gradient-to-b from-white to-sky-50/40 dark:from-slate-900 dark:to-sky-950/20 border-2 border-dashed border-sky-200 dark:border-sky-800/60 text-center space-y-4">
+                    <div class="w-16 h-16 mx-auto rounded-3xl bg-sky-100 dark:bg-sky-950/80 text-sky-600 dark:text-sky-400 flex items-center justify-center text-2xl shadow-inner">
+                        <i class="fas fa-stethoscope"></i>
                     </div>
-                    <h4 class="text-base font-bold text-slate-800 dark:text-slate-200">No Medical Records Yet</h4>
-                    <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">This patient does not have any recorded consultations or prescriptions.</p>
-                    <a href="{% url 'add_medical_record' %}?patient_id={{ patient.id }}" class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold">
-                        <i class="fas fa-plus"></i> Add First Consultation Record
-                    </a>
+                    <div class="max-w-md mx-auto">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 mb-2">
+                            Ready for Initial Intake
+                        </span>
+                        <h4 class="text-lg font-extrabold text-slate-900 dark:text-white">No Consultation Records Yet</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                            Start this patient's medical history by recording their baseline vitals, clinical examination notes, diagnosis, and issuing their first digitally certified e-prescription.
+                        </p>
+                    </div>
+                    <div class="flex items-center justify-center gap-3 pt-2">
+                        <a href="{% url 'add_medical_record' %}?patient_id={{ patient.id }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-lg shadow-sky-600/25 hover:shadow-xl transition-all">
+                            <i class="fas fa-plus-circle text-sm"></i>
+                            <span>Add First Consultation Record</span>
+                        </a>
+                    </div>
                 </div>
                 {% endif %}
             </div>

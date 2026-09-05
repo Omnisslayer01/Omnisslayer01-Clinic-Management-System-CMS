@@ -38,6 +38,7 @@ urlpatterns = [
     path('privacy/', TemplateView.as_view(template_name='privacy.html'), name='privacy'),
 
     path('demo-login/', auth.demo_login, name='demo_login'),
+    path('demo-patient-login/', auth.demo_patient_login, name='demo_patient_login'),
 
     # Real-time statistics endpoint
     path('api/landing-stats/', views.landing_stats_api, name='landing_stats_api'),

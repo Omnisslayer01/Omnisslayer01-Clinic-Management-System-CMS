@@ -1,0 +1,290 @@
+{% extends "patient/patient_base.html" %}
+{% load static i18n %}
+
+{% block page_title %}Account & Health Profile Settings{% endblock %}
+{% block page_subtitle %}Manage demographics, emergency contacts, notification preferences & linked family members{% endblock %}
+
+{% block patient_content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <!-- 1. PERSONAL HEALTH PROFILE FORM -->
+  <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-sky-100 dark:bg-sky-950 text-sky-600 flex items-center justify-center text-xs">
+          <i class="fas fa-user-gear"></i>
+        </div>
+        <div>
+          <h2 class="text-sm font-extrabold text-slate-900 dark:text-white">Personal Health Profile</h2>
+          <p class="text-[11px] text-slate-400">Demographics used on consultations & clinical prescriptions</p>
+        </div>
+      </div>
+      <span class="text-[10px] font-mono font-bold text-sky-600 px-2 py-0.5 rounded-full bg-sky-50 dark:bg-sky-950">
+        ID #P-{{ patient.id|stringformat:'04d' }}
+      </span>
+    </div>
+
+    <form action="{% url 'patient_settings' %}" method="post" class="space-y-4 text-xs">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="update_profile">
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
+          <input type="text" name="name" value="{{ patient.name }}" required
+                 class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Phone Number</label>
+          <input type="text" name="phone_number" value="{{ patient.phone_number }}" required
+                 class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Gender</label>
+          <select name="gender" class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+            <option value="Male" {% if patient.gender == 'Male' %}selected{% endif %}>Male</option>
+            <option value="Female" {% if patient.gender == 'Female' %}selected{% endif %}>Female</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Date of Birth</label>
+          <input type="date" name="date_of_birth" value="{{ patient.date_of_birth|date:'Y-m-d' }}"
+                 class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Blood Group</label>
+          <select name="blood_group" class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+            <option value="A+" {% if patient.blood_group == 'A+' %}selected{% endif %}>A+</option>
+            <option value="A-" {% if patient.blood_group == 'A-' %}selected{% endif %}>A-</option>
+            <option value="B+" {% if patient.blood_group == 'B+' %}selected{% endif %}>B+</option>
+            <option value="B-" {% if patient.blood_group == 'B-' %}selected{% endif %}>B-</option>
+            <option value="O+" {% if patient.blood_group == 'O+' %}selected{% endif %}>O+</option>
+            <option value="O-" {% if patient.blood_group == 'O-' %}selected{% endif %}>O-</option>
+            <option value="AB+" {% if patient.blood_group == 'AB+' %}selected{% endif %}>AB+</option>
+            <option value="AB-" {% if patient.blood_group == 'AB-' %}selected{% endif %}>AB-</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Preferred Language</label>
+          <select name="preferred_language" class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+            <option value="English" {% if patient.preferred_language == 'English' %}selected{% endif %}>English</option>
+            <option value="Hindi" {% if patient.preferred_language == 'Hindi' %}selected{% endif %}>Hindi</option>
+            <option value="Marathi" {% if patient.preferred_language == 'Marathi' %}selected{% endif %}>Marathi</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Residential Address</label>
+        <input type="text" name="address" value="{{ patient.address }}" placeholder="Flat/House No, Street, City"
+               class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block font-bold text-rose-600 dark:text-rose-400 mb-1">Drug Allergies</label>
+          <input type="text" name="allergies" value="{{ patient.allergies }}" placeholder="e.g. Penicillin, Sulfa, Aspirin"
+                 class="w-full p-2.5 rounded-xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900 text-slate-900 dark:text-white">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Chronic Medical Conditions</label>
+          <input type="text" name="medical_history" value="{{ patient.medical_history }}" placeholder="e.g. Hypertension, Asthma"
+                 class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+        </div>
+      </div>
+
+      <!-- Emergency Contacts -->
+      <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
+        <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Emergency Contact</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Emergency Contact Name & Relationship</label>
+            <input type="text" name="emergency_contact_name" value="{{ patient.emergency_contact_name }}" placeholder="e.g. Priya Sharma (Spouse)"
+                   class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-600 dark:text-slate-400 mb-1">Emergency Phone Number</label>
+            <input type="text" name="emergency_contact_phone" value="{{ patient.emergency_contact_phone }}" placeholder="+91 98234 56780"
+                   class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+          </div>
+        </div>
+      </div>
+
+      <!-- Notification Preferences -->
+      <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+        <h3 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Notification Preferences</h3>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="notify_whatsapp" {% if patient.notify_whatsapp %}checked{% endif %} class="rounded text-sky-600">
+            <span>WhatsApp Appointment Reminders & Prescription Alerts</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="notify_sms" {% if patient.notify_sms %}checked{% endif %} class="rounded text-sky-600">
+            <span>SMS Visit Confirmation & Token Queue Notifications</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="notify_email" {% if patient.notify_email %}checked{% endif %} class="rounded text-sky-600">
+            <span>Email Consultation Summaries & Lab Test PDF Reports</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="pt-3 flex justify-end">
+        <button type="submit" class="px-5 py-2.5 rounded-xl font-bold text-white bg-sky-600 hover:bg-sky-500 shadow-sm shadow-sky-600/20">
+          Save Settings & Profile
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- 2. LINKED FAMILY MEMBERS SECTION -->
+  <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 flex items-center justify-center text-xs">
+          <i class="fas fa-people-roof"></i>
+        </div>
+        <div>
+          <h2 class="text-sm font-extrabold text-slate-900 dark:text-white">Linked Family Members ({{ family_members.count }})</h2>
+          <p class="text-[11px] text-slate-400">Book doctor consultations on behalf of spouse, children, or elderly parents</p>
+        </div>
+      </div>
+      <button type="button" onclick="document.getElementById('addFamilyModal').classList.remove('hidden')" class="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-sm transition-all">
+        + Link Member
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {% for fam in family_members %}
+        <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between">
+          <div>
+            <div class="flex items-center gap-2">
+              <h4 class="text-xs font-bold text-slate-900 dark:text-white">{{ fam.name }}</h4>
+              <span class="px-2 py-0.2 rounded bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 text-[10px] font-semibold">
+                {{ fam.relationship }}
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-0.5">
+              {{ fam.gender }} · Blood Group: {{ fam.blood_group }}
+            </p>
+          </div>
+
+          <form action="{% url 'patient_delete_family_member' fam.id %}" method="post" onsubmit="return confirm('Remove family member?')">
+            {% csrf_token %}
+            <button type="submit" class="text-slate-400 hover:text-rose-500 text-xs p-1">
+              <i class="fas fa-trash-can"></i>
+            </button>
+          </form>
+        </div>
+      {% empty %}
+        <div class="col-span-full p-6 text-center text-slate-400 text-xs rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+          No family members linked yet. Click "+ Link Member" to add dependents.
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- 3. PAYMENT & INSURANCE CARD -->
+  <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
+    <div class="flex items-center gap-2.5 pb-3 border-b border-slate-100 dark:border-slate-800">
+      <div class="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-600 flex items-center justify-center text-xs">
+        <i class="fas fa-credit-card"></i>
+      </div>
+      <div>
+        <h2 class="text-sm font-extrabold text-slate-900 dark:text-white">Payment Methods & Insurance</h2>
+        <p class="text-[11px] text-slate-400">Manage billing preferences for consultations and diagnostic tests</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+      <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <i class="fas fa-wallet text-sky-600 text-base"></i>
+          <div>
+            <span class="font-bold text-slate-900 dark:text-white block">Cash / UPI at Clinic Desk</span>
+            <span class="text-[10px] text-slate-500">Default clinic payment method</span>
+          </div>
+        </div>
+        <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded-full">ACTIVE</span>
+      </div>
+
+      <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <i class="fas fa-shield-halved text-purple-600 text-base"></i>
+          <div>
+            <span class="font-bold text-slate-900 dark:text-white block">Health Insurance Direct</span>
+            <span class="text-[10px] text-slate-500">TPA Claims & Cashless Support</span>
+          </div>
+        </div>
+        <span class="text-[10px] font-bold text-sky-600 bg-sky-50 dark:bg-sky-950 px-2 py-0.5 rounded-full">ENABLED</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Add Family Member Modal -->
+<div id="addFamilyModal" class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+    <div class="flex items-center justify-between">
+      <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Link Family Member / Dependent</h3>
+      <button onclick="document.getElementById('addFamilyModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+        <i class="fas fa-xmark"></i>
+      </button>
+    </div>
+
+    <form action="{% url 'patient_add_family_member' %}" method="post" class="space-y-3 text-xs">
+      {% csrf_token %}
+      <div>
+        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
+        <input type="text" name="name" required placeholder="e.g. Priya Sharma"
+               class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Relationship</label>
+          <select name="relationship" class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+            <option value="Spouse">Spouse</option>
+            <option value="Child">Child</option>
+            <option value="Parent">Parent</option>
+            <option value="Sibling">Sibling</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Gender</label>
+          <select name="gender" class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Date of Birth</label>
+          <input type="date" name="date_of_birth"
+                 class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Blood Group</label>
+          <input type="text" name="blood_group" placeholder="O+, B+, etc."
+                 class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+        </div>
+      </div>
+
+      <button type="submit" class="w-full py-2.5 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-sm">
+        Link Member to Account
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

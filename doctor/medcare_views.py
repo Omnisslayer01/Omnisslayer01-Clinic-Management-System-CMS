@@ -7,6 +7,8 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.db.models import Count, Q, Sum
+from django.contrib import messages
+from django.utils.translation import gettext_lazy as _
 from accounts.decorators import doctor_required, doctor_or_assistant_required
 from .models import (
     DoctorProfile, Patients, Appointments, MedicalRecord, Clinic,
@@ -629,71 +631,23 @@ def api_trigger_backfill(request):
 @login_required
 @doctor_or_assistant_required
 def inventory_view(request):
-    doctor = _get_active_doctor(request)
-    _seed_defaults_if_empty(doctor)
-    items = InventoryItem.objects.filter(clinic=doctor.clinic).order_by('name') if doctor.clinic else []
-
-    context = {
-        'doctor': doctor,
-        'items': items,
-        'low_stock_count': sum(1 for i in items if i.stock_quantity <= i.reorder_level),
-        'total_sku_count': len(items),
-        'active_menu': 'inventory'
-    }
-    return render(request, 'inventory.html', context)
+    return redirect('doctor_dashboard')
 
 # ==============================================================================
-# 8. REFERRALS
+# 8. REFERRALS (Deprecated / Removed)
 # ==============================================================================
 @login_required
 @doctor_or_assistant_required
 def referrals_view(request):
-    doctor = _get_active_doctor(request)
-    referrals = Referral.objects.filter(doctor=doctor).order_by('-date_referred')
-    
-    if not referrals.exists() and doctor.clinic:
-        p = Patients.objects.filter(doctor=doctor).first()
-        if p:
-            Referral.objects.create(
-                patient=p, doctor=doctor, specialist_name="Dr. Eleanor Vance",
-                specialty="Cardiology", hospital_name="Metropolitan Heart Institute",
-                reason="Echocardiogram and evaluation for exertional dyspnea", status="Sent"
-            )
-            referrals = Referral.objects.filter(doctor=doctor)
-
-    context = {
-        'doctor': doctor,
-        'referrals': referrals,
-        'active_menu': 'referrals'
-    }
-    return render(request, 'referrals.html', context)
+    return redirect('doctor_dashboard')
 
 # ==============================================================================
-# 9. CLAIMS & INSURANCE
+# 9. CLAIMS & INSURANCE (Deprecated / Removed)
 # ==============================================================================
 @login_required
 @doctor_or_assistant_required
 def claims_view(request):
-    doctor = _get_active_doctor(request)
-    claims = ClaimRecord.objects.filter(doctor=doctor).order_by('-created_at')
-    
-    if not claims.exists() and doctor.clinic:
-        p = Patients.objects.filter(doctor=doctor).first()
-        if p:
-            ClaimRecord.objects.create(
-                patient=p, doctor=doctor, payer_name="Medicare Standard",
-                policy_number="MC-994827-01", claim_amount=85.00, copay_amount=20.00,
-                coverage_status="Eligible", status="Submitted"
-            )
-            claims = ClaimRecord.objects.filter(doctor=doctor)
-
-    context = {
-        'doctor': doctor,
-        'claims': claims,
-        'total_claims_amount': sum(c.claim_amount for c in claims),
-        'active_menu': 'claims'
-    }
-    return render(request, 'claims.html', context)
+    return redirect('doctor_dashboard')
 
 # ==============================================================================
 # 10. PRESCRIPTIONS HUB
@@ -702,8 +656,43 @@ def claims_view(request):
 @doctor_or_assistant_required
 def prescriptions_view(request):
     doctor = _get_active_doctor(request)
+    patients = Patients.objects.filter(Q(doctor=doctor) | Q(clinic=doctor.clinic)).order_by('name')
+
+    if request.method == 'POST':
+        patient_id = request.POST.get('patient_id')
+        details = request.POST.get('details', '').strip()
+        prescription_text = request.POST.get('prescription', '').strip()
+        remarks = request.POST.get('remarks', '').strip()
+
+        if not patient_id:
+            messages.error(request, _("Please select a patient to issue this prescription."))
+            return redirect('medcare_prescriptions')
+
+        patient = get_object_or_404(Patients, id=patient_id)
+        if not prescription_text:
+            messages.error(request, _("Please enter or compile at least one medication."))
+            return redirect('medcare_prescriptions')
+
+        new_record = MedicalRecord.objects.create(
+            doctor=doctor,
+            clinic=doctor.clinic,
+            patient=patient,
+            date=timezone.now(),
+            details=details or "Outpatient Medical Consultation & Diagnosis",
+            prescription=prescription_text,
+            remarks=remarks
+        )
+
+        AuditLogEntry.objects.create(
+            user=request.user,
+            action_type="Prescription Issued",
+            description=f"Prescription #RX-{new_record.id:05d} issued for patient {patient.name} by {doctor.user.get_full_name() or doctor.user.username}"
+        )
+
+        messages.success(request, _(f"Prescription for {patient.name} saved successfully! Click PDF or Print to output."))
+        return redirect('medcare_prescriptions')
+
     records = MedicalRecord.objects.filter(doctor=doctor).select_related('patient').order_by('-date')
-    patients = Patients.objects.filter(Q(doctor=doctor) | Q(clinic=doctor.clinic))
 
     context = {
         'doctor': doctor,
@@ -820,45 +809,302 @@ def locations_view(request):
     return render(request, 'locations.html', context)
 
 # ==============================================================================
-# 16. BILLING (Settings)
+# 16. BILLING & INVOICES (Comprehensive Financial Workflow)
 # ==============================================================================
+def _generate_invoice_pdf_reportlab(invoice, buffer):
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        leftMargin=40,
+        rightMargin=40,
+        topMargin=40,
+        bottomMargin=40
+    )
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle(
+        'InvTitle', parent=styles['Normal'],
+        fontSize=15, leading=19, fontName='Helvetica-Bold', textColor=colors.HexColor('#0f172a')
+    )
+    sub_style = ParagraphStyle(
+        'InvSub', parent=styles['Normal'],
+        fontSize=8, leading=11, textColor=colors.HexColor('#64748b')
+    )
+    badge_style = ParagraphStyle(
+        'InvBadge', parent=styles['Normal'],
+        fontSize=10, leading=14, fontName='Helvetica-Bold', alignment=2,
+        textColor=colors.HexColor('#059669' if invoice.status == 'Paid' else '#d97706')
+    )
+    body_style = ParagraphStyle(
+        'InvBody', parent=styles['Normal'],
+        fontSize=8.5, leading=12, textColor=colors.HexColor('#334155')
+    )
+    bold_style = ParagraphStyle(
+        'InvBold', parent=styles['Normal'],
+        fontSize=8.5, leading=12, fontName='Helvetica-Bold', textColor=colors.HexColor('#0f172a')
+    )
+
+    story = []
+
+    doctor_user = invoice.doctor.user
+    doctor_name = f"Dr. {doctor_user.first_name} {doctor_user.last_name}".strip() or doctor_user.username
+    clinic_name = invoice.doctor.clinic.name if invoice.doctor.clinic else "CMS Clinic Medical Center"
+    formatted_date = invoice.created_at.strftime('%b %d, %Y')
+    inv_code = f"INV-{invoice.invoice_id[:8].upper()}"
+
+    left_h = [
+        Paragraph(f"<b>{clinic_name.upper()}</b>", title_style),
+        Spacer(1, 2),
+        Paragraph(f"Attending: {doctor_name} - {invoice.doctor.specialization or 'General Medicine'}", sub_style),
+        Paragraph("Patient Billing & Financial Services - Electronic Receipt", sub_style)
+    ]
+    right_h = [
+        Paragraph(f"<b>{invoice.status.upper()}</b>", badge_style),
+        Spacer(1, 2),
+        Paragraph(f"<b>Invoice #:</b> {inv_code}", body_style),
+        Paragraph(f"<b>Date:</b> {formatted_date}", body_style),
+        Paragraph(f"<b>Method:</b> {invoice.payment_method}", body_style)
+    ]
+    story.append(Table([[left_h, right_h]], colWidths=[330, 202]))
+    story.append(Spacer(1, 10))
+    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#059669' if invoice.status == 'Paid' else '#d97706'), spaceAfter=12))
+
+    appt_info = f"Appt #{invoice.appointment.id} ({invoice.appointment.date})" if invoice.appointment else "Direct Outpatient Consultation"
+    phone_val = invoice.patient.phone_number or "N/A"
+    info_data = [
+        [Paragraph(f"<b>Billed To:</b> {invoice.patient.name}", body_style), Paragraph(f"<b>Attending Doctor:</b> {doctor_name}", body_style)],
+        [Paragraph(f"<b>Patient ID:</b> #{invoice.patient.id} | <b>Phone:</b> {phone_val}", body_style), Paragraph(f"<b>Consultation Link:</b> {appt_info}", body_style)]
+    ]
+    info_table = Table(info_data, colWidths=[266, 266])
+    info_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f8fafc')),
+        ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#e2e8f0')),
+        ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
+        ('TOPPADDING', (0,0), (-1,-1), 5),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+        ('LEFTPADDING', (0,0), (-1,-1), 8),
+        ('RIGHTPADDING', (0,0), (-1,-1), 8),
+    ]))
+    story.append(info_table)
+    story.append(Spacer(1, 15))
+
+    clean_summary = invoice.items_summary.replace('\n', '<br/>')
+    items_data = [
+        [Paragraph("<b>Description / Clinical Service</b>", bold_style), Paragraph("<b>Amount</b>", bold_style)],
+        [Paragraph(clean_summary, body_style), Paragraph(f"${invoice.total_amount}", body_style)],
+    ]
+    if invoice.tax_amount and invoice.tax_amount > 0:
+        items_data.append([Paragraph("Applicable Tax / VAT", body_style), Paragraph(f"${invoice.tax_amount}", body_style)])
+    items_data.append([Paragraph("<b>TOTAL AMOUNT</b>", bold_style), Paragraph(f"<font color='#059669'><b>${invoice.total_amount}</b></font>", bold_style)])
+
+    items_table = Table(items_data, colWidths=[420, 112])
+    items_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f1f5f9')),
+        ('LINEBELOW', (0,0), (-1,0), 1, colors.HexColor('#cbd5e1')),
+        ('BACKGROUND', (0,-1), (-1,-1), colors.HexColor('#ecfdf5')),
+        ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#cbd5e1')),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('LEFTPADDING', (0,0), (-1,-1), 8),
+        ('RIGHTPADDING', (0,0), (-1,-1), 8),
+    ]))
+    story.append(items_table)
+    story.append(Spacer(1, 20))
+
+    story.append(Paragraph("<div align='center'><font color='#94a3b8' size='7.5'>Thank you for choosing CMS Clinic. Computer generated official receipt.<br/>Confidential Medical Record - Verified Electronic Health Record Gateway</font></div>", body_style))
+
+    doc.build(story)
+
 @login_required
 @doctor_or_assistant_required
 def billing_view(request):
     doctor = _get_active_doctor(request)
-    invoices = BillingInvoice.objects.filter(doctor=doctor).order_by('-created_at')
+    patients = Patients.objects.filter(Q(doctor=doctor) | Q(clinic=doctor.clinic)).order_by('name')
+    appointments = Appointments.objects.filter(doctor=doctor).select_related('patient').order_by('-date', '-start_time')[:60]
 
-    if not invoices.exists() and doctor.clinic:
-        p = Patients.objects.filter(doctor=doctor).first()
-        if p:
-            BillingInvoice.objects.create(
-                patient=p, doctor=doctor, items_summary="Standard Consultation & Vitals",
-                total_amount=65.00, tax_amount=0.00, payment_method="Card", status="Paid"
-            )
-            invoices = BillingInvoice.objects.filter(doctor=doctor)
+    filter_status = request.GET.get('status', 'all').strip()
+    search_query = request.GET.get('q', '').strip()
+    prefill_patient_id = request.GET.get('patient_id', '')
+    prefill_appointment_id = request.GET.get('appointment_id', '')
 
-    total_revenue = sum(inv.total_amount for inv in invoices if inv.status == 'Paid')
+    invoices_qs = BillingInvoice.objects.filter(doctor=doctor).select_related('patient', 'appointment').order_by('-created_at')
+
+    # Seed an initial consultation invoice if completely empty so clinic feels active
+    if not invoices_qs.exists() and patients.exists():
+        p = patients.first()
+        BillingInvoice.objects.create(
+            patient=p, doctor=doctor, items_summary="Standard Outpatient Consultation Fee",
+            total_amount=50.00, tax_amount=0.00, payment_method="Card", status="Paid"
+        )
+        invoices_qs = BillingInvoice.objects.filter(doctor=doctor).select_related('patient', 'appointment').order_by('-created_at')
+
+    # Calculate overall revenue metrics across all invoices
+    all_invoices = list(BillingInvoice.objects.filter(doctor=doctor))
+    total_revenue = sum(inv.total_amount for inv in all_invoices if inv.status == 'Paid')
+    pending_revenue = sum(inv.total_amount for inv in all_invoices if inv.status == 'Pending')
+    total_invoices_count = len(all_invoices)
+
+    # Filter for table view
+    if filter_status.lower() == 'paid':
+        invoices_qs = invoices_qs.filter(status='Paid')
+    elif filter_status.lower() == 'pending':
+        invoices_qs = invoices_qs.filter(status='Pending')
+
+    if search_query:
+        invoices_qs = invoices_qs.filter(
+            Q(patient__name__icontains=search_query) |
+            Q(invoice_id__icontains=search_query) |
+            Q(items_summary__icontains=search_query)
+        )
+
+    # Resolve prefill objects
+    prefill_patient = None
+    prefill_appointment = None
+    if prefill_appointment_id:
+        try:
+            prefill_appointment = Appointments.objects.get(id=int(prefill_appointment_id), doctor=doctor)
+            prefill_patient = prefill_appointment.patient
+        except (ValueError, Appointments.DoesNotExist):
+            pass
+
+    if not prefill_patient and prefill_patient_id:
+        try:
+            prefill_patient = Patients.objects.get(id=int(prefill_patient_id))
+        except (ValueError, Patients.DoesNotExist):
+            pass
 
     context = {
         'doctor': doctor,
-        'invoices': invoices,
+        'invoices': invoices_qs,
+        'patients': patients,
+        'appointments': appointments,
         'total_revenue': total_revenue,
+        'pending_revenue': pending_revenue,
+        'total_invoices_count': total_invoices_count,
+        'filter_status': filter_status,
+        'search_query': search_query,
+        'prefill_patient': prefill_patient,
+        'prefill_appointment': prefill_appointment,
         'active_menu': 'billing'
     }
     return render(request, 'billing.html', context)
 
-# ==============================================================================
-# 17. AUDIT LOG (Settings)
-# ==============================================================================
 @login_required
 @doctor_or_assistant_required
-def audit_log_view(request):
+def create_invoice_view(request):
+    if request.method != 'POST':
+        return redirect('medcare_billing')
+
     doctor = _get_active_doctor(request)
-    logs = AuditLogEntry.objects.all().order_by('-timestamp')[:100]
+    patient_id = request.POST.get('patient_id')
+    appointment_id = request.POST.get('appointment_id') or None
+    items_summary = request.POST.get('items_summary', '').strip() or "Standard Doctor Consultation Fee"
+    payment_method = request.POST.get('payment_method', 'Cash')
+    status = request.POST.get('status', 'Paid')
+    mark_completed = request.POST.get('mark_completed') in ['1', 'true', 'on', 'yes']
+
+    try:
+        total_amount = float(request.POST.get('total_amount', 50.0))
+    except (ValueError, TypeError):
+        total_amount = 50.00
+
+    try:
+        tax_amount = float(request.POST.get('tax_amount', 0.0))
+    except (ValueError, TypeError):
+        tax_amount = 0.00
+
+    if not patient_id:
+        messages.error(request, _("Please select a patient to issue the invoice."))
+        return redirect('medcare_billing')
+
+    patient = get_object_or_404(Patients, id=patient_id)
+    appointment = None
+    if appointment_id:
+        try:
+            appointment = Appointments.objects.get(id=int(appointment_id), doctor=doctor)
+            if mark_completed and appointment.status != 'completed':
+                appointment.status = 'completed'
+                appointment.save(update_fields=['status'])
+        except (ValueError, Appointments.DoesNotExist):
+            appointment = None
+
+    generated_id = f"INV-{uuid.uuid4().hex[:10].upper()}"
+    invoice = BillingInvoice.objects.create(
+        invoice_id=generated_id,
+        patient=patient,
+        doctor=doctor,
+        appointment=appointment,
+        items_summary=items_summary,
+        total_amount=total_amount,
+        tax_amount=tax_amount,
+        payment_method=payment_method,
+        status=status
+    )
+
+    AuditLogEntry.objects.create(
+        user=request.user,
+        action_type="Invoice Generated",
+        description=f"Generated invoice #INV-{invoice.invoice_id[:8].upper()} for {patient.name} (${invoice.total_amount} - {status})"
+    )
+
+    messages.success(request, _(f"Invoice #INV-{invoice.invoice_id[:8].upper()} created for {patient.name} (${total_amount:.2f})."))
+    return redirect('medcare_billing')
+
+@login_required
+@doctor_or_assistant_required
+def update_invoice_status_view(request, invoice_id):
+    doctor = _get_active_doctor(request)
+    invoice = get_object_or_404(BillingInvoice, invoice_id=invoice_id, doctor=doctor)
+    new_status = request.POST.get('status') or request.GET.get('status')
+    if new_status in ['Paid', 'Pending', 'Overdue', 'Refunded']:
+        invoice.status = new_status
+        invoice.save(update_fields=['status'])
+        messages.success(request, _(f"Invoice #INV-{invoice.invoice_id[:8].upper()} updated to {new_status}."))
+    return redirect('medcare_billing')
+
+@login_required
+@doctor_or_assistant_required
+def invoice_receipt_view(request, invoice_id):
+    doctor = _get_active_doctor(request)
+    invoice = get_object_or_404(BillingInvoice, invoice_id=invoice_id, doctor=doctor)
+    return render(request, 'invoice_receipt.html', {'invoice': invoice, 'doctor': doctor})
+
+@login_required
+@doctor_or_assistant_required
+def generate_invoice_pdf(request, invoice_id):
+    doctor = _get_active_doctor(request)
+    invoice = get_object_or_404(BillingInvoice, invoice_id=invoice_id, doctor=doctor)
+    response = HttpResponse(content_type='application/pdf')
+    filename = f"invoice_{invoice.patient.name}_{invoice.invoice_id[:8].upper()}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    _generate_invoice_pdf_reportlab(invoice, response)
+    return response
+
+# ==============================================================================
+# 17. AUDIT LOG (Settings - Strictly Restricted to Administrator)
+# ==============================================================================
+@login_required
+def audit_log_view(request):
+    is_admin = bool(request.user.is_authenticated and (request.user.username == 'admin' or request.user.is_superuser))
+
+    if not is_admin:
+        messages.error(request, _("Access Restricted: The security audit log is only available when logged in as admin."))
+        if hasattr(request.user, 'is_doctor') and request.user.is_doctor():
+            return redirect('doctor_dashboard')
+        return redirect('assistant_dashboard')
+
+    doctor = _get_active_doctor(request) if (hasattr(request.user, 'is_doctor') and request.user.is_doctor()) else None
+    logs = AuditLogEntry.objects.all().order_by('-timestamp')[:150]
 
     context = {
         'doctor': doctor,
         'logs': logs,
+        'is_admin': True,
         'active_menu': 'audit_log'
     }
     return render(request, 'audit_log.html', context)

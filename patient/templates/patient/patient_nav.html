@@ -1,0 +1,220 @@
+{% load static i18n %}
+<script>
+  function handlePatientSidebarToggle() {
+    const sidebar = document.getElementById('patientSideNav');
+    const overlay = document.getElementById('patientSidebarOverlay');
+    if (!sidebar || !overlay) return;
+    if (sidebar.classList.contains('-translate-x-full')) {
+      sidebar.classList.remove('-translate-x-full');
+      overlay.classList.remove('hidden');
+    } else {
+      sidebar.classList.add('-translate-x-full');
+      overlay.classList.add('hidden');
+    }
+  }
+  window.handlePatientSidebarToggle = handlePatientSidebarToggle;
+</script>
+
+<!-- Desktop Patient Sidebar -->
+<aside class="sticky top-0 h-screen w-64 hidden lg:flex flex-col justify-between shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 shadow-sm z-30 font-sans">
+  <div class="flex-1 overflow-y-auto px-3.5 py-5 custom-scrollbar">
+    
+    <!-- Brand Header -->
+    <a href="{% url 'patient_home' %}" class="flex items-center gap-3 px-2 mb-5 group">
+      <div class="w-9 h-9 rounded-xl overflow-hidden bg-sky-600 text-white flex items-center justify-center font-black text-lg shadow-sm shadow-sky-500/20 group-hover:scale-105 transition-transform">
+        <img src="{% static 'cms_logo.png' %}" alt="CMS Logo" class="w-full h-full object-cover">
+      </div>
+      <div>
+        <h1 class="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight flex items-center gap-1.5">
+          <span>CMS</span>
+          <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-sky-100 dark:bg-sky-900/60 text-sky-700 dark:text-sky-300">PATIENT</span>
+        </h1>
+        <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Better Health Portal</p>
+      </div>
+    </a>
+
+    <!-- Patient Identity Card -->
+    <div class="p-3 mb-4 rounded-2xl bg-gradient-to-br from-sky-50 to-indigo-50/60 dark:from-slate-800/80 dark:to-slate-800/40 border border-sky-100 dark:border-slate-700/60 shadow-sm">
+      <div class="flex items-center gap-3">
+        <div class="relative">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-md shadow-sky-500/20">
+            {{ patient.name|default:user.username|make_list|first|upper }}
+          </div>
+          <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900"></span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-extrabold text-slate-900 dark:text-white truncate">
+            {{ patient.name|default:user.username }}
+          </p>
+          <div class="flex items-center gap-1.5 mt-0.5">
+            <span class="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 font-mono">
+              {{ patient.blood_group|default:'O+' }}
+            </span>
+            <span class="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+              ID #P-{{ patient.id|stringformat:'04d' }}
+            </span>
+          </div>
+        </div>
+      </div>
+      {% if patient.allergies and patient.allergies != 'None' %}
+        <div class="mt-2 pt-2 border-t border-sky-100/80 dark:border-slate-700/60 flex items-center gap-1.5 text-[10px] font-bold text-rose-600 dark:text-rose-400 truncate">
+          <i class="fas fa-triangle-exclamation text-[9px]"></i>
+          <span class="truncate">Allergy: {{ patient.allergies }}</span>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- AI Doctor Recommender Launcher -->
+    <div class="mb-4 px-1">
+      <button 
+        type="button" 
+        onclick="if(window.openPatientAiModal){window.openPatientAiModal();}else{window.location.href='{% url 'patient_home' %}#ai-tool';}"
+        class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 hover:opacity-95 shadow-md shadow-sky-500/20 transition-all transform active:scale-95 group"
+      >
+        <span class="flex items-center gap-2">
+          <i class="fas fa-wand-magic-sparkles text-xs text-sky-200 group-hover:rotate-12 transition-transform"></i>
+          <span>AI Symptom Matcher</span>
+        </span>
+        <span class="text-[9px] px-1.5 py-0.5 rounded bg-white/25 uppercase font-mono font-bold">AI</span>
+      </button>
+    </div>
+
+    <!-- PATIENT PORTAL SECTIONS (1 TO 9) -->
+    <div class="space-y-1">
+      <div class="px-2 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+        Healthcare Menu
+      </div>
+
+      <!-- 1. Home Dashboard -->
+      <a href="{% url 'patient_home' %}" 
+         class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors {% if active_menu == 'home' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-bold border border-sky-200/60 dark:border-sky-800/60 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <span class="flex items-center gap-2.5">
+          <i class="fas fa-house-chimney-medical text-xs w-4 text-center {% if active_menu == 'home' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+          <span>Home</span>
+        </span>
+        {% if active_menu == 'home' %}<span class="w-1.5 h-1.5 rounded-full bg-sky-600 dark:bg-sky-400"></span>{% endif %}
+      </a>
+
+      <!-- 2. Book Appointment -->
+      <a href="{% url 'patient_book_appointment' %}" 
+         class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors {% if active_menu == 'book' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-bold border border-sky-200/60 dark:border-sky-800/60 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <span class="flex items-center gap-2.5">
+          <i class="fas fa-calendar-plus text-xs w-4 text-center {% if active_menu == 'book' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+          <span>Book Appointment</span>
+        </span>
+        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">Book</span>
+      </a>
+
+      <!-- 3. Find Doctors -->
+      <a href="{% url 'patient_find_doctors' %}" 
+         class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors {% if active_menu == 'doctors' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-bold border border-sky-200/60 dark:border-sky-800/60 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <span class="flex items-center gap-2.5">
+          <i class="fas fa-user-doctor text-xs w-4 text-center {% if active_menu == 'doctors' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+          <span>Find Doctors</span>
+        </span>
+      </a>
+
+      <!-- 4. Patients (My Records) -->
+      <a href="{% url 'patient_my_records' %}" 
+         class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors {% if active_menu == 'records' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-bold border border-sky-200/60 dark:border-sky-800/60 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <span class="flex items-center gap-2.5">
+          <i class="fas fa-folder-medical text-xs w-4 text-center {% if active_menu == 'records' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+          <span>My Records</span>
+        </span>
+      </a>
+
+      <!-- 5. Prescriptions -->
+      <a href="{% url 'patient_prescriptions' %}" 
+         class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors {% if active_menu == 'prescriptions' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-bold border border-sky-200/60 dark:border-sky-800/60 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <span class="flex items-center gap-2.5">
+          <i class="fas fa-prescription-bottle-medical text-xs w-4 text-center {% if active_menu == 'prescriptions' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+          <span>Prescriptions</span>
+        </span>
+      </a>
+
+      <!-- 6. Lab Tests -->
+      <a href="{% url 'patient_lab_tests' %}" 
+         class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors {% if active_menu == 'labs' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-bold border border-sky-200/60 dark:border-sky-800/60 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <span class="flex items-center gap-2.5">
+          <i class="fas fa-vial-virus text-xs w-4 text-center {% if active_menu == 'labs' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+          <span>Lab Tests</span>
+        </span>
+      </a>
+
+      <!-- 7. Messages -->
+      <a href="{% url 'patient_messages' %}" 
+         class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors {% if active_menu == 'messages' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-bold border border-sky-200/60 dark:border-sky-800/60 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <span class="flex items-center gap-2.5">
+          <i class="fas fa-comments text-xs w-4 text-center {% if active_menu == 'messages' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+          <span>Messages</span>
+        </span>
+        {% if unread_messages_count %}
+          <span class="px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-rose-500 text-white animate-pulse">{{ unread_messages_count }}</span>
+        {% endif %}
+      </a>
+
+      <!-- 8. Health Tips -->
+      <a href="{% url 'patient_health_tips' %}" 
+         class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors {% if active_menu == 'health_tips' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-bold border border-sky-200/60 dark:border-sky-800/60 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <span class="flex items-center gap-2.5">
+          <i class="fas fa-heart-pulse text-xs w-4 text-center {% if active_menu == 'health_tips' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+          <span>Health Tips</span>
+        </span>
+      </a>
+
+      <!-- 9. Settings -->
+      <a href="{% url 'patient_settings' %}" 
+         class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors {% if active_menu == 'settings' %}bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 font-bold border border-sky-200/60 dark:border-sky-800/60 shadow-sm{% else %}text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white{% endif %}">
+        <span class="flex items-center gap-2.5">
+          <i class="fas fa-gear text-xs w-4 text-center {% if active_menu == 'settings' %}text-sky-600 dark:text-sky-400{% else %}text-slate-400{% endif %}"></i>
+          <span>Settings</span>
+        </span>
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Bottom Actions (Theme Toggle & Sign Out) -->
+  <div class="p-3.5 border-t border-slate-200 dark:border-slate-800 space-y-2">
+    <a href="{% url 'logout' %}" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors">
+      <i class="fas fa-arrow-right-from-bracket text-xs"></i>
+      <span>Log Out</span>
+    </a>
+  </div>
+</aside>
+
+<!-- Mobile Sidebar Overlay -->
+<div id="patientSidebarOverlay" onclick="handlePatientSidebarToggle()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 hidden lg:hidden"></div>
+
+<!-- Mobile Drawer -->
+<aside id="patientSideNav" class="fixed top-0 left-0 bottom-0 w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-50 transform -translate-x-full transition-transform duration-300 flex flex-col justify-between p-4 lg:hidden">
+  <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+    <div class="flex items-center gap-2.5">
+      <img src="{% static 'cms_logo.png' %}" alt="CMS Logo" class="w-8 h-8 rounded-lg object-cover">
+      <div>
+        <h2 class="text-xs font-bold text-slate-900 dark:text-white">CMS Patient</h2>
+        <p class="text-[10px] text-slate-400">Better Health Portal</p>
+      </div>
+    </div>
+    <button onclick="handlePatientSidebarToggle()" class="text-slate-400 hover:text-slate-600 text-sm p-1">
+      <i class="fas fa-xmark"></i>
+    </button>
+  </div>
+  <div class="flex-1 overflow-y-auto py-3 space-y-1">
+    <a href="{% url 'patient_home' %}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-sky-50">Home</a>
+    <a href="{% url 'patient_book_appointment' %}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-sky-50">Book Appointment</a>
+    <a href="{% url 'patient_find_doctors' %}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-sky-50">Find Doctors</a>
+    <a href="{% url 'patient_my_records' %}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-sky-50">My Records</a>
+    <a href="{% url 'patient_prescriptions' %}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-sky-50">Prescriptions</a>
+    <a href="{% url 'patient_lab_tests' %}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-sky-50">Lab Tests</a>
+    <a href="{% url 'patient_messages' %}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-sky-50">Messages</a>
+    <a href="{% url 'patient_health_tips' %}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-sky-50">Health Tips</a>
+    <a href="{% url 'patient_settings' %}" class="block px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-sky-50">Settings</a>
+  </div>
+  <div class="pt-3 border-t border-slate-200 dark:border-slate-800">
+    <a href="{% url 'logout' %}" class="flex items-center gap-2 text-xs font-bold text-rose-600">
+      <i class="fas fa-arrow-right-from-bracket"></i>
+      <span>Log Out</span>
+    </a>
+  </div>
+</aside>
